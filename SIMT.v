@@ -53,4 +53,10 @@ Section SIMT_Definition.
   | func : forall n, Op n -> t E n -> E.
   Implicit Arguments var [n].
   Implicit Arguments func [n].
+
+  Notation "a '+' b" := (@func 2 e_plus [a; b]).
+  Notation "a '&&' b" := (@func 2 e_and [a; b]).
+  Notation "a '<' b" := (@func 2 e_lt [a; b]).
+  Notation "'!' a" := (@func 1 e_neg [a]) (at level 35, right associativity).
+  Notation "'c' z" := (@func 0 (const z) []) (at level 20).
 End SIMT_Definition.
