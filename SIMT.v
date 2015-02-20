@@ -45,4 +45,12 @@ Section SIMT_Definition.
                                     end
                         | _ => 0%Z
                       end.
+
+  Inductive E : Set :=
+  | tid : E
+  | ntid : E
+  | var : forall n, V n -> t E n -> E
+  | func : forall n, Op n -> t E n -> E.
+  Implicit Arguments var [n].
+  Implicit Arguments func [n].
 End SIMT_Definition.
