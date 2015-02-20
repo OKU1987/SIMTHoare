@@ -68,4 +68,10 @@ Section SIMT_Definition.
   | P_if : E -> program -> program -> program
   | P_while : E -> program -> program.
   Implicit Arguments asgn [n].
+
+  Notation "x '::=' e" := (asgn x [] e) (at level 110, right associativity).
+  Notation "x '$'" := (@var _ x []) (at level 30).
+  Notation "P ;; Q" := (seq P Q) (at level 150).
+  Notation "'IFB' e 'THEN' P 'ELSE' Q" := (P_if e P Q) (at level 135).
+  Notation "'WHILE' e 'DO' P" := (P_while e P) (at level 140).
 End SIMT_Definition.
