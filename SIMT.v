@@ -59,4 +59,13 @@ Section SIMT_Definition.
   Notation "a '<' b" := (@func 2 e_lt [a; b]).
   Notation "'!' a" := (@func 1 e_neg [a]) (at level 35, right associativity).
   Notation "'c' z" := (@func 0 (const z) []) (at level 20).
+
+  Inductive program : Set :=
+  | asgn : forall n, V n -> t E n -> E -> program
+  | skip : program
+  | sync : program
+  | seq : program -> program -> program
+  | P_if : E -> program -> program -> program
+  | P_while : E -> program -> program.
+  Implicit Arguments asgn [n].
 End SIMT_Definition.
