@@ -1,5 +1,6 @@
 Require Import Vectors.VectorDef.
 Require Import ZArith.
+Import VectorNotations.
 
 Section SIMT_Definition.
   Variable num_threads : { n : nat & (n > 0)%nat}. (* the number of threads *)
