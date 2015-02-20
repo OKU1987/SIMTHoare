@@ -13,4 +13,6 @@ Section SIMT_Definition.
 
   Inductive SV (n:arity) : Set :=
   | shared : variable_name -> SV n.
+
+  Definition V n := (LV n + SV n)%type.
 End SIMT_Definition.
