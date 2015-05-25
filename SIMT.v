@@ -177,4 +177,6 @@ Section SIMT_Definition.
                 eval P mu' s s' ->
                 eval (WHILE e DO P) mu' s' s'' ->
                 eval (WHILE e DO P) mu s s''.
+
+  Definition assertion := state -> Prop.
 End SIMT_Definition.
