@@ -95,4 +95,11 @@ Section SIMT_Definition.
         fun i => f (map (fun e => s[[e]](i)) es)
     end
       where "s '[[' e ']](' i ')'" := (E_under_state s e i).
+
+  Definition Zeq_list_bool n (zs zs' : t Z n) :=
+    fold_left (fun b b' => andb b b') true
+              (map2 (fun z z' => Zeq_bool z z') zs zs').
+
+  Definition update n (f : t Z n -> Z) (zs : t Z n) (z : Z) :=
+    fun zs' : t Z n => if Zeq_list_bool n zs zs' then z else f zs'.
 End SIMT_Definition.
