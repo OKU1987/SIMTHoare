@@ -109,4 +109,7 @@ Section SIMT_Definition.
 
   Definition meet (mu mu' : mask) : mask := fun i => andb (mu i) (mu' i).
   Definition diff (mu mu' : mask) : mask := fun i => andb (mu i) (negb (mu' i)).
+
+  Definition s_es n s := fun (es : t E n) i => map (fun e => s[[e]](i)) es.
+  Notation "s '[[[' es ']]](' i ')'" := (s_es _ s es i) (at level 50).
 End SIMT_Definition.
