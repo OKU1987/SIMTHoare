@@ -2,6 +2,7 @@ Require Import SIMT_util.
 Require Import Vectors.VectorDef.
 Require Import ZArith.
 Import VectorNotations.
+Require Import FunctionalExtensionality.
 
 Section SIMT_Definition.
   Variable num_threads : { n : nat & (n > 0)%nat}. (* the number of threads *)
