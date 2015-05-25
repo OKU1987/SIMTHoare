@@ -189,4 +189,5 @@ Section SIMT_Definition.
       psi s'.
 
   Definition all e := forall i : T, e i <> 0%Z.
+  Definition none e := forall i : T, e i = 0%Z.
 End SIMT_Definition.
