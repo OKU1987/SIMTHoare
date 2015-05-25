@@ -179,4 +179,6 @@ Section SIMT_Definition.
                 eval (WHILE e DO P) mu s s''.
 
   Definition assertion := state -> Prop.
+
+  Definition mask_of (m : T -> Z) i : bool := negb (Zeq_bool (m i) 0%Z).
 End SIMT_Definition.
