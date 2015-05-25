@@ -190,4 +190,8 @@ Section SIMT_Definition.
 
   Definition all e := forall i : T, e i <> 0%Z.
   Definition none e := forall i : T, e i = 0%Z.
+  Definition forall_in_mask (s : state) m (P : T -> Prop) :=
+    forall i : T, m i <> 0%Z -> P i.
+  Definition exists_in_mask (s : state) m (P : T -> Prop) :=
+    exists i : T, m i <> 0%Z /\ P i.
 End SIMT_Definition.
