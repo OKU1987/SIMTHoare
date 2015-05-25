@@ -211,6 +211,15 @@ Section SIMT_Definition.
 
   Definition mask_of (m : T -> Z) i : bool := negb (Zeq_bool (m i) 0%Z).
 
+  Lemma lt_0_N : lt 0 N.
+    unfold N.
+    destruct num_threads.
+    simpl.
+    assumption.
+  Qed.
+
+  Definition zero_T : T := existT _ 0 (lt_0_N).
+
   Definition hoare_quadruple (phi : assertion) m (P : program) (psi : assertion) : Prop :=
     forall s s' : state,
       phi s ->
