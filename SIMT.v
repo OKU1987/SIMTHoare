@@ -106,4 +106,7 @@ Section SIMT_Definition.
   Definition mask := T -> bool.
   Definition empty : mask := fun _ => false.
   Definition T_mask : mask := fun _ => true.
+
+  Definition meet (mu mu' : mask) : mask := fun i => andb (mu i) (mu' i).
+  Definition diff (mu mu' : mask) : mask := fun i => andb (mu i) (negb (mu' i)).
 End SIMT_Definition.
