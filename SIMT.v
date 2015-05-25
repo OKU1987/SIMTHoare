@@ -76,4 +76,8 @@ Section SIMT_Definition.
   Notation "'WHILE' e 'DO' P" := (P_while e P) (at level 140).
   
   Definition T := { n : nat & (n < N)%nat}.
+
+  Definition L_map n := T -> t Z n -> Z.
+  Definition S_map n := t Z n -> Z.
+  Definition state := ((forall n, LV n -> L_map n) * (forall n, SV n -> S_map n))%type.
 End SIMT_Definition.
