@@ -94,6 +94,45 @@ Section SIMT_Definition.
   
   Definition T := { n : nat & (n < N)%nat}.
 
+  Definition T_S : forall n,
+                   {n0 : nat & (n0 < n)%nat} ->
+                   {n0 : nat & (n0 < S n)%nat}.
+    intros. destruct H. exists x. abstract omega.
+  Defined.
+
+  Lemma T_dec : forall (P : T -> Prop),
+                  (forall i, P i \/ ~ P i) ->
+                  (forall i, ~ P i) \/ (exists i, P i).
+    unfold T.
+    induction N; intros.
+    - left. intros. inversion i.
+      induction x; inversion H0.
+    - set (P' (u : {n0 : nat & (n0 < n)%nat}) := P (T_S _ u)).
+      destruct (IHn P').
+      + firstorder.
+      + unfold P' in *.
+        assert ((n < S n)%nat) by omega.
+        destruct (H (exist _ n H1)).
+        * right. eexists. eassumption.
+        * left. intros.
+          destruct i.
+          inversion l; subst.
+          { rewrite <- (proof_irrelevance _ H1 l). assumption. }
+          { apply le_S_gt in H4.
+            assert (exists i : {n0 : nat & (n0 < n)%nat},
+                      T_S _ i = existT (fun n0 : nat => (n0 < S n)%nat) x l).
+            exists (existT _ x H4).
+            simpl.
+            apply f_equal.
+            apply proof_irrelevance.
+            destruct H3.
+            rewrite <- H3.
+            apply H0.
+          }
+      + destruct H0.
+        right. exists (T_S _ x). assumption.
+  Qed.
+
   Definition L_map n := T -> t Z n -> Z.
   Definition S_map n := t Z n -> Z.
   Definition state := ((forall n, LV n -> L_map n) * (forall n, SV n -> S_map n))%type.
