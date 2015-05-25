@@ -4,6 +4,8 @@ Require Import ZArith.
 Import VectorNotations.
 Require Import FunctionalExtensionality.
 Require Import ProofIrrelevance.
+Require Import Eqdep_dec.
+Require Import EqdepFacts.
 
 Section SIMT_Definition.
   Variable num_threads : { n : nat & (n > 0)%nat}. (* the number of threads *)
