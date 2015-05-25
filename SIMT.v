@@ -350,4 +350,294 @@ Section SIMT_Definition.
                 (forall z : T -> Z,
                    Hoare_proof (fun s => phi s /\ (forall i, s[[e]](i) = z i)) (fun i => e_and [m i; z i]) P phi) ->
                 Hoare_proof phi m (WHILE e DO P) (fun s => phi s /\ none (fun i : T => e_and [m i; s[[e]](i)])).
+
+  Lemma lem_1 : forall s s' n (x : V n) es e (m : T -> Z),
+                   eval (asgn x es e) (mask_of m) s s' <->
+                   exists a,
+                       s' = update_state s _ x a /\
+                       assign s a m x es e.
+  Proof.
+    split; intros.
+    - (* => *)
+      inversion H; subst; clear H.
+      + destruct x as [lv | sv].
+        * destruct s'.
+          exists (inl (fun i => fun zs => l n lv i zs)).
+          simpl.
+          split.
+          { functional_extensionality_dep_pair_r; intro n'.
+            destruct (eq_nat_dec n n'); try reflexivity; subst.
+            unfold eq_rec_r. unfold eq_rec. unfold eq_rect.
+            subst.
+            simpl.
+            rewrite <- functional_extensionality with (f:=l n');
+              try reflexivity; intro lv'.
+            destruct (eq_lv_dec _ lv lv'); try reflexivity.
+            subst.
+            reflexivity. }
+          { unfold lassign. intros. split.
+            - inactive_is_not_active.
+              apply equal_f with (x:=i) in H2.
+              destruct (m i); reflexivity.
+            - intros. destruct H.
+              apply equal_f with (x:=i) in H2.
+              inactive_is_not_active.
+              destruct (m i); try (inactive_is_not_active; contradict H2;
+                                  discriminate);
+              contradict H; reflexivity. }
+        * destruct s'.
+          exists (inr (fun zs => s n sv zs)).
+          simpl.
+          split.
+          { functional_extensionality_dep_pair_r; intro n'.
+            destruct (eq_nat_dec n n'); try reflexivity; subst.
+            unfold eq_rec_r. unfold eq_rec. unfold eq_rect.
+            subst.
+            simpl.
+            rewrite <- functional_extensionality with (f:=s n');
+              try reflexivity; intro sv'.
+            destruct (eq_sv_dec _ sv sv'); try reflexivity.
+            subst.
+            reflexivity. }
+          { unfold sassign. intros.
+            inactive_is_not_active.
+            unfold forall_in_mask. unfold exists_in_mask.
+            left.
+            split; intros.
+            apply equal_f with (x:=i) in H2;
+            destruct (m i); try (contradict H; reflexivity);
+            try (contradict H2; discriminate). reflexivity. }
+      + existT_eq.
+        destruct s. destruct s' as [l' s'].
+        simpl in H8.
+        unfold update_state.
+        unfold eq_rec_r. unfold eq_rec. unfold eq_rect.
+        simpl in H7. subst.
+        simpl.
+        eexists (inl _).
+        split.
+        * functional_extensionality_dep_pair_r; try reflexivity.
+          intro n'.
+          generalize (H8 n'); intro H8'; clear H8.
+          destruct (eq_nat_dec n n'); subst; try reflexivity.
+          rewrite <- functional_extensionality with (f:=l' n');
+            try reflexivity.
+          subst. intro lv'.
+          simpl.
+          generalize (H8' lv'); intro H8; clear H8'.
+          destruct (eq_lv_dec _ x1 lv'); subst; try reflexivity; assumption.
+          apply functional_extensionality. intros. apply H8'.
+        * unfold lassign.
+          intros.
+          generalize (H8 n); intro H8'; clear H8.
+          destruct (eq_nat_dec n n) as [H|H]; [|contradict H; reflexivity].
+          generalize (H8' x1); intro H8; clear H8'.
+          destruct (eq_lv_dec _ x1 x1); [|contradict n0; reflexivity].
+          simplify_mask.
+          destruct H8 as [H0 H1].
+          generalize (H0 i); intro H0'; clear H0.
+          generalize (H1 i); intro H1'; clear H1.
+          simpl. split.
+          { intros.
+            destruct (m i); try (simpl in H0'; rewrite H0'; reflexivity);
+            simpl in H1';
+            destruct H0; try discriminate;
+            rewrite H1'; try reflexivity;
+            unfold update; rewrite H0; reflexivity. }
+          { intros. destruct H0.
+            destruct (m i);
+              try (rewrite H1'; try reflexivity;
+                   unfold update; rewrite H1; reflexivity);
+              contradict H0; reflexivity. }
+      + existT_eq.
+        destruct s. destruct s' as [l' s'].
+        simpl in H8.
+        unfold update_state.
+        unfold eq_rec_r. unfold eq_rec. unfold eq_rect.
+        simpl in H7. subst.
+        simpl.
+        eexists (inr _).
+        split.
+        functional_extensionality_dep_pair_r; try reflexivity.
+          intro n'.
+          generalize (H8 n'); intro H8'; clear H8.
+          destruct (eq_nat_dec n n'); subst; try reflexivity.
+          rewrite <- functional_extensionality with (f:=s' n'); try reflexivity.
+          subst. intro sv'.
+          simpl.
+          generalize (H8' sv'); intro H8; clear H8'.
+          destruct (eq_sv_dec _ x1 sv'); subst; try reflexivity; assumption.
+          apply functional_extensionality. intro. apply H8'.
+        * unfold sassign.
+          intros.
+          generalize (H8 n); intro H8'; clear H8.
+          destruct (eq_nat_dec n n) as [H|H]; [|contradict H; reflexivity].
+          generalize (H8' x1); intro H8; clear H8'.
+          destruct (eq_sv_dec _ x1 x1); [|contradict n0; reflexivity].
+          simplify_mask.
+          unfold forall_in_mask.
+          unfold exists_in_mask.
+          destruct (H8 ns) as [H0 H1]; clear H8.
+          destruct T_dec
+          with (P:=(fun i =>
+                      negb (Zeq_bool (m i) 0) = true /\
+                      Zeq_list_bool _ ((l,s)[[[es]]](i)) ns = true)).
+          { unfold not. intros.
+            destruct (m i); simpl;
+            try (right; intros; destruct H2; inversion H2; fail);
+            destruct (Zeq_list_bool n ((l,s)[[[es]]](i)));
+            try (left; split; reflexivity);
+            right; intros; destruct H2; discriminate.
+          }
+          { left.
+            split.
+            - intros. generalize (H2 i); intro H2'.
+              destruct (m i); try (contradict H3; reflexivity);
+              destruct (Zeq_list_bool n ((l,s)[[[es]]](i)));
+                try (destruct H2'; split; reflexivity); reflexivity.
+            - apply H0. intros.
+              generalize (H2 i); intro H2'.
+              destruct (m i); try discriminate;
+              destruct (Zeq_list_bool n ((l,s)[[[es]]](i)));
+                try (simpl in H2'; destruct H2'; split; reflexivity);
+                reflexivity.
+          }
+          {
+            right.
+            destruct (H1 H2).
+            exists x.
+            destruct H3 as [H3 [H3' H3'']].
+            repeat split; try assumption.
+            destruct (m x); try (contradict H3; discriminate); try reflexivity.
+          }
+    - (* <= *)
+      destruct x as [lv | sv]; constructor.
+      + destruct H. destruct x as [la | sa].
+        * destruct H. simpl in H0. subst. reflexivity.
+        * destruct H. inversion H0.
+      + destruct H. destruct x as [la | sa].
+        * intros.
+          destruct (eq_nat_dec n n'); subst; try intros y.
+          { destruct (eq_lv_dec _ lv y).
+            - split; intros.
+              + destruct H. subst. simpl.
+                simpl in H1.
+                unfold lassign in H1.
+                simplify_mask.
+                destruct (eq_nat_dec n' n'); try (contradict n; reflexivity).
+                unfold eq_rec_r; unfold eq_rec.
+                rewrite <- (eq_rect_eq_dec eq_nat_dec).
+                destruct (eq_lv_dec _ y y); try (contradict n; reflexivity).
+                destruct s. simpl.
+                apply functional_extensionality. intro zs.
+                destruct (H1 zs i); clear H1. simpl in *.
+                destruct (m i); try inversion H0.
+                apply H. left. reflexivity.
+              + destruct H. subst. simpl.
+                simpl in H1.
+                unfold lassign in H1.
+                simplify_mask.
+                destruct (eq_nat_dec n' n'); try (contradict n; reflexivity).
+                unfold eq_rec_r; unfold eq_rec.
+                rewrite <- (eq_rect_eq_dec eq_nat_dec).
+                destruct (eq_lv_dec _ y y); try (contradict n; reflexivity).
+                destruct s. simpl.
+                apply functional_extensionality. intro zs.
+                destruct (H1 zs i); clear H1. simpl in *.
+                unfold update.
+                destruct (m i); try inversion H0;
+                destruct (Zeq_list_bool _ ((l, s)[[[es]]](i)) zs);
+                  try (apply H2; split; try discriminate; reflexivity);
+                  apply H; right; reflexivity.
+            - destruct H. subst.
+              simpl in H0.
+              destruct s.
+              simpl.
+              unfold eq_rec_r; unfold eq_rec.
+              apply functional_extensionality_dep. intro n''.
+              apply functional_extensionality. intro lv''.
+              destruct (eq_nat_dec n' n'); try reflexivity.
+              rewrite <- eq_rect_eq.
+              destruct (eq_lv_dec _ lv y); try reflexivity. subst.
+              contradict n. reflexivity.
+          }
+          { destruct H. subst. destruct s.
+            simpl.
+            destruct (eq_nat_dec n n'); subst;
+            try (contradict n0; reflexivity).
+            reflexivity.
+          }
+        * intros. simpl in H. destruct H. inversion H0.
+      + destruct H. destruct x as [la | sa].
+        * destruct H. inversion H0.
+        * destruct H. simpl in H0. subst. reflexivity.
+      + destruct H. destruct x as [la | sa].
+        * intros. simpl in H. destruct H. inversion H0.
+        * intros.
+          destruct (eq_nat_dec n n'); subst; try intros y.
+          { destruct (eq_sv_dec _ sv y).
+            - intros.
+              destruct H. subst.
+              simpl in H0. unfold sassign in H0.
+              destruct (H0 ns); clear H0.
+              + destruct H. split.
+                * simpl. intros.
+                  destruct (eq_nat_dec n' n'); try (contradict n; reflexivity).
+                  unfold eq_rec_r; unfold eq_rec.
+                  rewrite <- eq_rect_eq.
+                  destruct (eq_sv_dec _ y y); try (contradict n; reflexivity).
+                  assumption.
+                * intros.
+                  destruct H1.
+                  simplify_mask.
+                  exists x.
+                  destruct H1.
+                  repeat split; try assumption.
+                  unfold forall_in_mask in H.
+                  generalize (H x); intros. clear H.
+                  destruct (m x); try (contradict H1; discriminate; fail);
+                  destruct (Zeq_list_bool _ (s[[[es]]](x)) ns);
+                  try (assert (H' : true = false) by (apply H3; discriminate));
+                  try (assert (H' : false = true) by (apply H2; reflexivity));
+                  try inversion H'.
+              + split.
+                * intros.
+                  destruct H as [i [H [H' H'']]].
+                  generalize (H0 i); clear H0; intro H0.
+                  simplify_mask.
+                  destruct (m i); try (contradict H; reflexivity);
+                  simpl in H0;
+                  generalize (H0 (refl_equal _)); intro;
+                  rewrite H' in H1; discriminate.
+                * intros.
+                  simpl.
+                  destruct (eq_nat_dec n' n'); subst;
+                  try (contradict n; reflexivity);
+                  try (unfold eq_rec_r; unfold eq_rec; rewrite <- eq_rect_eq);
+                  destruct (eq_sv_dec _ y y); try (apply H; discriminate);
+                  try contradict n; try reflexivity.
+                  destruct H.
+                  exists x.
+                  destruct H as [H [H' H'']].
+                  unfold mask_of in *.
+                  repeat split; try assumption.
+                  destruct (m x); try (contradict H; reflexivity); reflexivity.
+            - destruct H. subst.
+              simpl in H0.
+              destruct s.
+              simpl.
+              unfold eq_rec_r; unfold eq_rec.
+              apply functional_extensionality_dep. intro n''.
+              destruct (eq_nat_dec n' n'); try reflexivity.
+              rewrite <- eq_rect_eq.
+              destruct (eq_sv_dec _ sv y); try reflexivity. subst.
+              contradict n. reflexivity.
+          }
+          { destruct H. subst. destruct s.
+            simpl.
+            destruct (eq_nat_dec n n'); subst;
+            try (contradict n0; reflexivity).
+            reflexivity.
+          }
+  Qed.
 End SIMT_Definition.
