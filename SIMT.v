@@ -126,4 +126,55 @@ Section SIMT_Definition.
 
   Definition s_es n s := fun (es : t E n) i => map (fun e => s[[e]](i)) es.
   Notation "s '[[[' es ']]](' i ')'" := (s_es _ s es i) (at level 50).
+
+  Inductive eval : program -> mask -> state -> state -> Prop :=
+  | E_Inactive : forall P s, eval P empty s s
+  | E_Skip : forall mu s, eval skip mu s s
+  | E_Sync : forall s, eval sync T_mask s s
+  | E_LAssign : forall n (x : LV n) es e mu (s s' : state),
+                  snd s' = snd s ->
+                  (forall n',
+                     if eq_nat_dec n n' then
+                       forall y : LV n,
+                         if eq_lv_dec _ x y then
+                           (forall i, mu i = false -> fst s' n x i = fst s n x i) /\
+                           (forall i, mu i = true ->
+                                      fst s' n x i =
+                                      update n (fst s n x i) (s[[[es]]](i)) (s[[e]](i))
+                           )
+                         else fst s' n y = fst s n y
+                     else (forall y : LV n', fst s' n' y = fst s n' y)) ->
+                  eval (asgn (inl x) es e) mu s s'
+  | E_SAssign : forall n (x : SV n) es e mu (s s' : state),
+                  fst s' = fst s ->
+                  (forall n',
+                     if eq_nat_dec n n' then
+                       forall y : SV n,
+                         if eq_sv_dec _ x y then
+                           (forall ns,
+                              ((forall i, mu i = true ->
+                                          Zeq_list_bool _ (s[[[es]]](i)) ns = false) ->
+                               snd s' n x ns = snd s n x ns) /\
+                              ((exists i, mu i = true /\
+                                          Zeq_list_bool _ (s[[[es]]](i)) ns = true) ->
+                               (exists j, mu j = true /\
+                                          Zeq_list_bool _ (s[[[es]]](j)) ns = true /\
+                                          snd s' n x ns = (s[[e]](j))))
+                           )
+                         else snd s' n y = snd s n y
+                     else (forall y : SV n', snd s' _ y = snd s _ y)) ->
+                  eval (asgn (inr x) es e) mu s s'
+  | E_Seq : forall P Q mu s s' s'', eval P mu s s' ->
+                                    eval Q mu s' s'' ->
+                                    eval (seq P Q) mu s s''
+  | E_If : forall P Q mu s e s_e s' s'',
+             s_e = (fun i => negb (Zeq_bool (s[[e]](i)) 0)) ->
+             eval P (meet mu s_e) s s' ->
+             eval Q (diff mu s_e) s' s'' ->
+             eval (IFB e THEN P ELSE Q) mu s s''
+  | E_While : forall P mu s e mu' s' s'',
+                mu' = meet mu (fun i => negb (Zeq_bool (s[[e]](i)) 0)) ->
+                eval P mu' s s' ->
+                eval (WHILE e DO P) mu' s' s'' ->
+                eval (WHILE e DO P) mu s s''.
 End SIMT_Definition.
