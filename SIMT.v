@@ -3,6 +3,7 @@ Require Import Vectors.VectorDef.
 Require Import ZArith.
 Import VectorNotations.
 Require Import FunctionalExtensionality.
+Require Import ProofIrrelevance.
 
 Section SIMT_Definition.
   Variable num_threads : { n : nat & (n > 0)%nat}. (* the number of threads *)
