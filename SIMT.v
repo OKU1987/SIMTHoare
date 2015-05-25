@@ -220,6 +220,27 @@ Section SIMT_Definition.
 
   Definition zero_T : T := existT _ 0 (lt_0_N).
 
+  Ltac simplify_mask' :=
+    match goal with
+      | [ H : context[mask_of] |- _] => unfold mask_of in H
+      | [ H : context[meet] |- _] => unfold meet in H
+      | [ H : context[diff] |- _] => unfold diff in H
+      | [ H : context[negb] |- _] => unfold negb in H
+      | _ => fail
+    end.
+
+  Ltac simplify_mask := repeat simplify_mask'; simpl in *|-*.
+
+  Ltac inactive_is_not_active :=
+    simplify_mask; zero_lt_pos;
+    match goal with
+      | [ H' : context[empty = _] |- _] =>
+        assert (devil : false = true) by apply (equal_f H' zero_T);
+          inversion devil
+      | _ => idtac
+    end.
+  Unset Ltac Debug.
+
   Definition hoare_quadruple (phi : assertion) m (P : program) (psi : assertion) : Prop :=
     forall s s' : state,
       phi s ->
