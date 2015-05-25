@@ -17,6 +17,20 @@ Section SIMT_Definition.
 
   Definition V n := (LV n + SV n)%type.
 
+  Lemma eq_lv_dec : forall n (lv lv' : LV n), {lv = lv'} + {lv <> lv'}.
+    destruct n; destruct lv; destruct lv';
+    destruct (eq_nat_dec v v0) as [H | H];
+    try (subst; left; reflexivity);
+    try (right; contradict H; inversion H; reflexivity).
+  Qed.
+
+  Lemma eq_sv_dec : forall n (sv sv' : SV n), {sv = sv'} + {sv <> sv'}.
+    destruct n; destruct sv; destruct sv';
+    destruct (eq_nat_dec v v0) as [H | H];
+    try (subst; left; reflexivity);
+    try (right; contradict H; inversion H; reflexivity).
+  Qed.
+
   Definition Op n := t Z n -> Z.
 
   Definition const (z:Z) : Op 0 := fun _ : t Z 0 => z.
