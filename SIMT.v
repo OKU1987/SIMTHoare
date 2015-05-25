@@ -1,3 +1,4 @@
+Require Import SIMT_util.
 Require Import Vectors.VectorDef.
 Require Import ZArith.
 Import VectorNotations.
