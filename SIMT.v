@@ -117,6 +117,33 @@ Section SIMT_Definition.
   Definition update n (f : t Z n -> Z) (zs : t Z n) (z : Z) :=
     fun zs' : t Z n => if Zeq_list_bool n zs zs' then z else f zs'.
 
+  Definition update_state (s : state) n (x : V n) (x' : (T -> t Z n -> Z) + (t Z n -> Z)) : state.
+    refine (
+        match x, x' with
+          | inl lv, inl lv' =>
+            ((fun n0 (lv0 : LV n0) =>
+                match eq_nat_dec n n0 return L_map n0 with
+                  | left e => _
+                  | right _ => fst s n0 lv0
+                end), snd s)
+          | inr sv, inr sv' =>
+            (fst s,
+             fun n0 (sv0 : SV n0) =>
+               match eq_nat_dec n n0 return S_map n0 with
+                 | left e => _
+                 | right _ => snd s n0 sv0
+               end)
+          | _, _ => s
+        end
+      ).
+    - clear x x'. subst.
+      refine (if eq_lv_dec _ lv lv0 then fun i => fun zs => lv' i zs else fst s _ lv0).
+    - clear x x'. subst.
+      refine (if eq_sv_dec _ sv sv0 then sv' else snd s _ sv0).
+  Defined.
+
+  Transparent update_state.
+
   Definition mask := T -> bool.
   Definition empty : mask := fun _ => false.
   Definition T_mask : mask := fun _ => true.
