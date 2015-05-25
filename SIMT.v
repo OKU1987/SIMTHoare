@@ -80,4 +80,19 @@ Section SIMT_Definition.
   Definition L_map n := T -> t Z n -> Z.
   Definition S_map n := t Z n -> Z.
   Definition state := ((forall n, LV n -> L_map n) * (forall n, SV n -> S_map n))%type.
+
+  Reserved Notation "s '[[' e ']](' i ')'" (at level 50).
+
+  Fixpoint E_under_state (s:state) e : T -> Z :=
+    match e with
+      | tid => fun t => match t with existT i _ => Z.of_nat i end
+      | ntid => fun _ => Z.of_nat N
+      | var n (inl lv) es =>
+        fun i => fst s n lv i (map (fun e => s[[e]](i)) es)
+      | var n (inr sv) es =>
+        fun i => snd s n sv (map (fun e => s[[e]](i)) es)
+      | func n f es =>
+        fun i => f (map (fun e => s[[e]](i)) es)
+    end
+      where "s '[[' e ']](' i ')'" := (E_under_state s e i).
 End SIMT_Definition.
