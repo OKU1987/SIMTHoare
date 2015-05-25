@@ -187,4 +187,6 @@ Section SIMT_Definition.
       phi s ->
       eval P (mask_of m) s s' ->
       psi s'.
+
+  Definition all e := forall i : T, e i <> 0%Z.
 End SIMT_Definition.
