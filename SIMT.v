@@ -104,4 +104,6 @@ Section SIMT_Definition.
     fun zs' : t Z n => if Zeq_list_bool n zs zs' then z else f zs'.
 
   Definition mask := T -> bool.
+  Definition empty : mask := fun _ => false.
+  Definition T_mask : mask := fun _ => true.
 End SIMT_Definition.
