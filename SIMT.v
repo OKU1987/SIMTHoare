@@ -74,4 +74,6 @@ Section SIMT_Definition.
   Notation "P ;; Q" := (seq P Q) (at level 150).
   Notation "'IFB' e 'THEN' P 'ELSE' Q" := (P_if e P Q) (at level 135).
   Notation "'WHILE' e 'DO' P" := (P_while e P) (at level 140).
+  
+  Definition T := { n : nat & (n < N)%nat}.
 End SIMT_Definition.
