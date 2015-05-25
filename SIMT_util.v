@@ -2,6 +2,7 @@ Require Import Vectors.VectorDef.
 Require Import ZArith.
 Import VectorNotations.
 Require Import JMeq.
+Require Import FunctionalExtensionality.
 
 Ltac existT_eq' :=
   match goal with
@@ -43,5 +44,38 @@ Ltac zero_lt_pos :=
        simpl in H; unfold Zgt in H; apply Zcompare_Gt_spec in H;
        destruct H; simpl in H; rewrite <- Zplus_0_r_reverse in H;
        simpl in H0; rewrite H in H0; simpl in H0
+    | _ => idtac
+  end.
+
+Ltac functional_extensionality_pair_l :=
+  match goal with
+    | [ |- context[(?f, ?b) = (?g, ?b)]] =>
+      rewrite (functional_extensionality f g ); reflexivity
+    | [ |- context[(?a, ?f) = (?a, ?g)]] =>
+      rewrite (functional_extensionality f g ); reflexivity
+    | _ => idtac
+  end.
+Ltac functional_extensionality_pair_r :=
+  match goal with
+    | [ |- context[(?f, ?b) = (?g, ?b)]] =>
+      rewrite <- (functional_extensionality f g); try reflexivity
+    | [ |- context[(?a, ?f) = (?a, ?g)]] =>
+      rewrite <- (functional_extensionality f g); try reflexivity
+    | _ => idtac
+  end.
+Ltac functional_extensionality_dep_pair_l :=
+  match goal with
+    | [ |- context[(?f, ?b) = (?g, ?b)]] =>
+      rewrite (functional_extensionality_dep f g ); reflexivity
+    | [ |- context[(?a, ?f) = (?a, ?g)]] =>
+      rewrite (functional_extensionality_dep f g ); reflexivity
+    | _ => idtac
+  end.
+Ltac functional_extensionality_dep_pair_r :=
+  match goal with
+    | [ |- context[(?f, ?b) = (?g, ?b)]] =>
+      rewrite <- (functional_extensionality_dep f g); try reflexivity
+    | [ |- context[(?a, ?f) = (?a, ?g)]] =>
+      rewrite <- (functional_extensionality_dep f g); try reflexivity
     | _ => idtac
   end.
