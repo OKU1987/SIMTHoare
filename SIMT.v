@@ -181,4 +181,10 @@ Section SIMT_Definition.
   Definition assertion := state -> Prop.
 
   Definition mask_of (m : T -> Z) i : bool := negb (Zeq_bool (m i) 0%Z).
+
+  Definition hoare_quadruple (phi : assertion) m (P : program) (psi : assertion) : Prop :=
+    forall s s' : state,
+      phi s ->
+      eval P (mask_of m) s s' ->
+      psi s'.
 End SIMT_Definition.
