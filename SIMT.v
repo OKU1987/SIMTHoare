@@ -194,4 +194,26 @@ Section SIMT_Definition.
     forall i : T, m i <> 0%Z -> P i.
   Definition exists_in_mask (s : state) m (P : T -> Prop) :=
     exists i : T, m i <> 0%Z /\ P i.
+
+  Definition lassign (s : state) n (x' : T -> t Z n -> Z) m (x : LV n) (es : t E n) (e : E) : Prop :=
+    forall (ns : t Z n) (i : T),
+      (m i = 0%Z \/ Zeq_list_bool _ (s[[[es]]](i)) ns = false ->
+       (x' i ns = fst s n x i ns)) /\
+      (m i <> 0%Z /\ Zeq_list_bool _ (s[[[es]]](i)) ns = true ->
+       (x' i ns = s[[e]](i))).
+
+  Definition sassign s n (x' : t Z n -> Z) m (x : SV n) (es : t E n) (e : E) : Prop :=
+    (forall ns : t Z n,
+       (forall_in_mask s m (fun i => Zeq_list_bool _ (s[[[es]]](i)) ns = false) /\
+       x' ns = snd s n x ns) \/
+       (exists_in_mask s m (fun i => Zeq_list_bool _ (s[[[es]]](i)) ns = true /\
+                                    x' ns = s[[e]](i)))).
+
+  Definition assign rho n x' m (x : V n) (es : t _ n) (e : _) :=
+    match x, x' return Prop with
+      | inl lv, inl lv' => lassign rho n lv' m lv es e
+      | inr sv, inr sv' => sassign rho n sv' m sv es e
+      | _, _ => False
+    end.
+  Implicit Arguments assign [n].
 End SIMT_Definition.
