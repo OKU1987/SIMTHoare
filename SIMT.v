@@ -243,4 +243,37 @@ Section SIMT_Definition.
       | _, _ => False
     end.
   Implicit Arguments assign [n].
+
+  Inductive Hoare_proof : assertion -> (T -> Z) -> program -> assertion -> Prop :=
+  | H_Skip : forall phi m, Hoare_proof phi m skip phi
+  | H_Sync : forall (phi : assertion) m,
+               Hoare_proof (fun s => (all m \/ none m) -> phi s)
+                           m sync phi
+  | H_Conseq : forall (phi phi' psi psi' : assertion) m P,
+                 (forall s, phi' s -> phi s) ->
+                 Hoare_proof phi m P psi ->
+                 (forall s, psi s -> psi' s) ->
+                 Hoare_proof phi' m P psi'
+  | H_Seq : forall phi m P psi Q chi,
+              Hoare_proof phi m P psi ->
+              Hoare_proof psi m Q chi ->
+              Hoare_proof phi m (P ;; Q) chi
+  | H_Assign : forall n (x : V n) (es : t E n) e m (phi : assertion),
+                 Hoare_proof (fun s =>
+                                forall x', assign s x' m x es e ->
+                                           phi (update_state s n x x'))
+                             m (asgn x es e) (fun s => phi s)
+  | H_If : forall (phi : assertion) psi chi e (m : T -> Z) P Q,
+             (forall z : T -> Z,
+                Hoare_proof
+                  (fun s =>
+                     phi s /\
+                     (forall i, s[[e]](i) = z i))
+                  (fun i => e_and [m i; z i]) P (psi z)) ->
+             (forall z, Hoare_proof (psi z) (fun i => e_and [m i; e_neg [z i]]) Q chi) ->
+             Hoare_proof phi m (IFB e THEN P ELSE Q) chi
+  | H_While : forall (phi : assertion) m e P,
+                (forall z : T -> Z,
+                   Hoare_proof (fun s => phi s /\ (forall i, s[[e]](i) = z i)) (fun i => e_and [m i; z i]) P phi) ->
+                Hoare_proof phi m (WHILE e DO P) (fun s => phi s /\ none (fun i : T => e_and [m i; s[[e]](i)])).
 End SIMT_Definition.
