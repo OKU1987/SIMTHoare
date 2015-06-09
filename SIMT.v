@@ -256,6 +256,10 @@ Section SIMT_Definition.
 
   Definition mask_of (m : T -> Z) i : bool := negb (Zeq_bool (m i) 0%Z).
 
+  Lemma fold_mask_of : forall m, (fun i => negb (Zeq_bool (m i) 0%Z)) = mask_of m.
+    reflexivity.
+  Qed.
+
   Lemma lt_0_N : lt 0 N.
     unfold N.
     destruct num_threads.
