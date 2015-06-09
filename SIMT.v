@@ -696,4 +696,24 @@ Section SIMT_Definition.
     - intro. apply equal_f with (x:=i) in H.
       destruct (e i); try discriminate; try reflexivity.
   Qed.
+
+  Lemma while_stable :
+    forall e P,
+      stable e P ->
+      stable e (WHILE e DO P).
+  Proof.
+    intros. unfold stable; intros.
+    remember (WHILE e DO P) as W.
+    induction H0; inversion HeqW; subst.
+    - reflexivity.
+    - unfold stable in H.
+      assert (forall mu', meet mu mu' i = false) by
+          (intros; unfold meet; rewrite H1; reflexivity).
+      generalize (H _ _ _ H0_ i (H0 (mask_of (E_under_state s e)))).
+      intros.
+      generalize (IHeval2 (refl_equal _) (H0 (mask_of (E_under_state s e)))).
+      intros.
+      rewrite H2, H3.
+      reflexivity.
+  Qed.
 End SIMT_Definition.
