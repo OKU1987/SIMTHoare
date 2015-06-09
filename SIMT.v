@@ -649,4 +649,20 @@ Section SIMT_Definition.
       forall (mu : mask) (s s' : state),
         eval P mu s s' ->
         forall i : T, mu i = false -> s[[e]](i) = s'[[e]](i).
+
+  Lemma lem_2 : forall e P,
+                  stable e P ->
+                  forall mu s s',
+                    eval P (meet mu (mask_of (E_under_state s e))) s s' ->
+                    sub (meet mu (mask_of (E_under_state s' e)))
+                        (meet mu (mask_of (E_under_state s e))).
+  Proof.
+    unfold sub, stable, meet, negb, mask_of.
+    intros.
+    generalize (H _ _ _ H0 i); intros.
+    destruct (mu i); destruct (s[[e]](i)); simpl in *;
+    try reflexivity;
+    try inversion H1.
+    rewrite <- H2 in H1; inversion H1; reflexivity.
+  Qed.
 End SIMT_Definition.
