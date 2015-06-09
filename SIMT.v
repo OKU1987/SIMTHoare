@@ -676,4 +676,24 @@ Section SIMT_Definition.
   | R_While : forall e P, stable e P ->
                           regular P ->
                           regular (WHILE e DO P).
+
+  Lemma lem_5_1 : forall e, all e <-> mask_of e = T_mask.
+  Proof.
+    split; intros; unfold all in *; unfold mask_of in *; unfold T_mask in *.
+    - apply functional_extensionality; intro i.
+      generalize (H i); intro H'.
+      destruct (e i); try (contradict H'; reflexivity); reflexivity.
+    - intro. apply equal_f with (x:=i) in H.
+      destruct (e i); discriminate.
+  Qed.
+
+  Lemma lem_5_2 : forall e, none e <-> mask_of e = empty.
+  Proof.
+    split; intros; unfold none in *; unfold mask_of in *; unfold empty in *.
+    - apply functional_extensionality; intro i.
+      generalize (H i); intro H'.
+      destruct (e i); try discriminate; try reflexivity.
+    - intro. apply equal_f with (x:=i) in H.
+      destruct (e i); try discriminate; try reflexivity.
+  Qed.
 End SIMT_Definition.
