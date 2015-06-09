@@ -203,6 +203,53 @@ Section SIMT_Definition.
     reflexivity.
   Qed.
 
+  Lemma meet_empty_l : forall m, meet empty m = empty.
+  Proof.
+    intros; unfold meet, empty; apply functional_extensionality;
+    intro;
+    destruct (m x); try reflexivity.
+  Qed.
+
+  Lemma meet_empty_r : forall m, meet m empty = empty.
+  Proof.
+    intros; unfold meet, empty; apply functional_extensionality;
+    intro;
+    destruct (m x); try reflexivity.
+  Qed.
+
+  Lemma meet_comm : forall m m', meet m m' = meet m' m.
+  Proof.
+    intros; unfold meet, empty; apply functional_extensionality;
+    intro;
+    destruct (m x); destruct (m' x); try reflexivity.
+  Qed.
+
+  Lemma meet_assoc : forall m m' m'', meet (meet m m') m'' =
+                                      meet m (meet m' m'').
+  Proof.
+    intros; unfold meet, empty; apply functional_extensionality;
+    intro;
+    destruct (m x); destruct (m' x); destruct (m'' x); try reflexivity.
+  Qed.
+
+  Lemma meet_double : forall m, meet m m = m.
+  Proof.
+    intros; unfold meet, empty; apply functional_extensionality;
+    intro;
+    destruct (m x); try reflexivity.
+  Qed.
+
+  Lemma sub_meet : forall m m', sub m m' -> meet m m' = m.
+  Proof.
+    intros.
+    apply functional_extensionality; intro i.
+    unfold sub in H.
+    generalize (H i); clear H; intro.
+    unfold meet.
+    destruct (m i); destruct (m' i); try reflexivity.
+    generalize (H (refl_equal _)); intro H'; inversion H'.
+  Qed.
+
   Definition s_es n s := fun (es : t E n) i => map (fun e => s[[e]](i)) es.
   Notation "s '[[[' es ']]](' i ')'" := (s_es _ s es i) (at level 50).
 
