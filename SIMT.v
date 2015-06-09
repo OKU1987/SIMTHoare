@@ -198,6 +198,11 @@ Section SIMT_Definition.
   Definition sub (mu mu' : mask) : Prop :=
     forall i : T, mu i = true -> mu' i = true.
 
+  Lemma fold_meet : forall mu mu', (fun i => (mu i && mu' i))%bool = meet mu mu'.
+  Proof.
+    reflexivity.
+  Qed.
+
   Definition s_es n s := fun (es : t E n) i => map (fun e => s[[e]](i)) es.
   Notation "s '[[[' es ']]](' i ')'" := (s_es _ s es i) (at level 50).
 
