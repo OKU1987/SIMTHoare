@@ -665,4 +665,15 @@ Section SIMT_Definition.
     try inversion H1.
     rewrite <- H2 in H1; inversion H1; reflexivity.
   Qed.
+
+  Inductive regular : program -> Prop :=
+  | R_Assign : forall n x es e, regular (@asgn n x es e)
+  | R_Skip : regular skip
+  | R_Sync : regular sync
+  | R_Seq : forall P Q, regular P -> regular Q -> regular (P;; Q)
+  | R_If : forall e P Q, regular P -> regular Q ->
+                         regular (IFB e THEN P ELSE Q)
+  | R_While : forall e P, stable e P ->
+                          regular P ->
+                          regular (WHILE e DO P).
 End SIMT_Definition.
