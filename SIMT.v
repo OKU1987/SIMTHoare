@@ -321,6 +321,15 @@ Section SIMT_Definition.
     destruct (m i); simpl; destruct (z i); try reflexivity.
   Qed.
 
+  Lemma diff_equiv :
+    forall m z,
+      diff (mask_of m) (mask_of z) = mask_of (fun i => e_and [m i; e_neg [z i]]).
+  Proof.
+    intros m z; apply functional_extensionality; intro i;
+    unfold diff, mask_of; unfold negb.
+    destruct (m i); simpl; destruct (z i); try reflexivity.
+  Qed.
+
   Lemma lt_0_N : lt 0 N.
     unfold N.
     destruct num_threads.
