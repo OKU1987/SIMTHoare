@@ -720,4 +720,29 @@ Section SIMT_Definition.
       rewrite H2, H3.
       reflexivity.
   Qed.
+
+  Lemma lem_2_while :
+    forall e P,
+      stable e P ->
+      forall mu s s',
+        eval (WHILE e DO P) mu s s' ->
+        sub (mask_of (E_under_state s' e)) (mask_of (E_under_state s e)).
+  Proof.
+    unfold sub.
+    intros.
+    remember (WHILE e DO P) as W.
+    induction H0; inversion HeqW; subst; try assumption.
+    clear IHeval1.
+    generalize (H _ _ _ H0_); intro.
+    rewrite fold_mask_of in *.
+    generalize (while_stable _ _ H _ _ _ H0_0 i); intro.
+    generalize (H0 i); intro.
+    generalize H1 H2 H3; clear; intros.
+    unfold meet in *.
+    remember (mask_of (E_under_state s e) i) as b.
+    destruct b; try reflexivity.
+    unfold mask_of in H1, Heqb.
+    rewrite <- H2, <- H3, <- Heqb in H1;
+      try assumption; try (destruct (mu i); reflexivity).
+  Qed.
 End SIMT_Definition.
