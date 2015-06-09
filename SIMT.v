@@ -312,6 +312,15 @@ Section SIMT_Definition.
     reflexivity.
   Qed.
 
+  Lemma meet_equiv :
+    forall m z,
+      meet (mask_of m) (mask_of z) = mask_of (fun i => e_and [m i; z i]).
+  Proof.
+    intros m z; apply functional_extensionality; intro i;
+    unfold meet, mask_of; unfold negb;
+    destruct (m i); simpl; destruct (z i); try reflexivity.
+  Qed.
+
   Lemma lt_0_N : lt 0 N.
     unfold N.
     destruct num_threads.
