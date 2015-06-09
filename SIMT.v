@@ -640,4 +640,10 @@ Section SIMT_Definition.
             reflexivity.
           }
   Qed.
+
+  Definition stable :=
+    fun e P =>
+      forall (mu : mask) (s s' : state),
+        eval P mu s s' ->
+        forall i : T, mu i = false -> s[[e]](i) = s'[[e]](i).
 End SIMT_Definition.
