@@ -401,8 +401,8 @@ Section SIMT_Definition.
                Hoare_proof (fun s => (all m \/ none m) -> phi s)
                            m sync phi
   | H_Conseq : forall (phi phi' psi psi' : assertion) m P,
-                 (forall s, phi' s -> phi s) ->
                  Hoare_proof phi m P psi ->
+                 (forall s, phi' s -> phi s) ->
                  (forall s, psi s -> psi' s) ->
                  Hoare_proof phi' m P psi'
   | H_Seq : forall phi m P psi Q chi,
@@ -889,7 +889,7 @@ Section SIMT_Definition.
       + left. intro.
         generalize (equal_f H2 i). unfold T_mask. intros H3.
         destruct (m i); simpl in H3; try inversion H3; try discriminate.
-    - apply H1. apply (IHHoare_proof H2 s); try apply H; assumption.
+    - apply H1. apply (IHHoare_proof H2 s); try apply H0; assumption.
     - inversion H1; subst.
       inversion H3; subst;
       eapply (IHHoare_proof2 H7); try eapply (IHHoare_proof1 H6);
