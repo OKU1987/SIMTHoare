@@ -943,4 +943,13 @@ Section SIMT_Definition.
       + rewrite fold_mask_of; rewrite H0; eassumption.
       + rewrite fold_mask_of; rewrite H0; eassumption.
   Qed.
+
+  Lemma H_Conseq_pre : forall (phi psi phi' : assertion) m p,
+                         Hoare_proof phi' m p psi ->
+                         (forall s, phi s -> phi' s) ->
+                         Hoare_proof phi m p psi.
+  Proof.
+    intros.
+    apply (H_Conseq _ _ _ _ m p H H0 (fun s => id)).
+  Qed.
 End SIMT_Definition.
