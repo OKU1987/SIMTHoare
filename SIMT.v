@@ -872,4 +872,42 @@ Section SIMT_Definition.
       try (inversion H; fail);
       try (generalize (H0 (refl_equal _)); intro H'; inversion H').
   Qed.
+
+  Theorem Soundness : forall phi (m : T -> Z) p psi,
+                        Hoare_proof phi m p psi ->
+                        regular p ->
+                        hoare_quadruple phi m p psi.
+  Proof.
+    intros phi m p psi H.
+    induction H; unfold hoare_quadruple in *; intros.
+    - inversion H1; subst; assumption.
+    - inversion H1; subst; simplify_mask;
+      unfold all in H0; unfold none in H0; apply H0.
+      + right. intro.
+        generalize (equal_f H4 i). unfold empty. intros H2.
+        destruct (m i); simpl in H2; try inversion H2; try reflexivity.
+      + left. intro.
+        generalize (equal_f H2 i). unfold T_mask. intros H3.
+        destruct (m i); simpl in H3; try inversion H3; try discriminate.
+    - apply H1. apply (IHHoare_proof H2 s); try apply H; assumption.
+    - inversion H1; subst.
+      inversion H3; subst;
+      eapply (IHHoare_proof2 H7); try eapply (IHHoare_proof1 H6);
+      try eassumption; rewrite <- H8; econstructor.
+    - destruct (lem_1 s s' n x es e m) as [H2 H2']. clear H2'.
+      apply H2 in H1.
+      destruct H1 as [x0 [H1 H1']]; subst.
+      apply (H0 _ H1').
+    - inversion H3; inversion H5; subst.
+      + generalize (H0 _ H8 s' s' (conj H4 (fun i => refl_equal _))); intro.
+        rewrite <- meet_equiv, <- H13, meet_empty_l in H6.
+        generalize (H2 (E_under_state s' e) H10 s' s' (H6 (E_Inactive _ _))); intro.
+        rewrite <- meet_equiv, <- H13, meet_empty_l in H7.
+        apply (H7 (E_Inactive _ _ )).
+      + rewrite fold_mask_of, meet_equiv in H18.
+        rewrite fold_mask_of, diff_equiv in H19.
+        apply (H2 (E_under_state s e) H10 s'0 s'
+                  (H0 _ H8 s s'0 (conj H4 (fun i => refl_equal _)) H18) H19).
+    - apply (Soundness_while _ _ _ _ H0 H1 _ _ m (refl_equal _) H3 H2).
+  Qed.
 End SIMT_Definition.
