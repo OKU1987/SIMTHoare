@@ -952,4 +952,183 @@ Section SIMT_Definition.
     intros.
     apply (H_Conseq _ _ _ _ m p H H0 (fun s => id)).
   Qed.
+
+  Theorem Relative_Completeness' : forall phi (m : T -> Z) p psi,
+                                     regular p ->
+                                     hoare_quadruple phi m p psi ->
+                                     Hoare_proof (wlp m p psi) m p psi.
+  Proof.
+    intros phi m p.
+    generalize dependent m.
+    generalize dependent phi.
+    induction p; intros.
+    - rename t into es.
+      eapply H_Conseq_pre.
+      + eapply H_Assign.
+      + simpl. intros.
+        eapply H1.
+        destruct v; apply lem_1; exists x'; split; try reflexivity; assumption.
+    - eapply H_Conseq_pre.
+      + econstructor.
+      + unfold wlp. intros. eapply H1. econstructor.
+    - unfold hoare_quadruple in H0.
+      eapply H_Conseq_pre.
+      + econstructor.
+      + unfold wlp. intros. eapply H1.
+        destruct H2;
+          match goal with
+            | [H2 : all m|-_] => apply lem_5_1 in H2
+            | [H2 : none m|-_] => apply lem_5_2 in H2
+          end; try rewrite H2; try constructor.
+    - eapply H_Seq with (wlp m p2 psi).
+      + eapply H_Conseq_pre.
+        * inversion H; subst.
+          eapply IHp1; try assumption.
+          unfold hoare_quadruple.
+          unfold wlp. intros.
+          unfold hoare_quadruple in H0.
+          eapply H0 with (s:=s). eassumption.
+          econstructor; eassumption.
+        * intros. unfold wlp. intros.
+          eapply H1.
+          econstructor; eassumption.
+      + inversion H; subst.
+        eapply IHp2 with (wlp m p2 psi); try assumption.
+        unfold hoare_quadruple, wlp. intros.
+        eapply H1.
+        assumption.
+    - eapply H_If; intros.
+      + eapply H_Conseq_pre.
+        * inversion H; subst.
+          eapply IHp1 with
+          (phi :=
+             (fun s => wlp (fun i => e_and [m i; z i]) p1
+                           (wlp (fun i => e_and [m i; e_neg [z i]])
+                                p2 psi) s /\
+                       (forall i, s[[e]](i) = z i))); try assumption.
+          unfold hoare_quadruple. intros.
+          destruct H1.
+          eapply H1.
+          eassumption.
+        * intros. destruct H1.
+          unfold wlp. intros.
+          unfold wlp in H1.
+          apply H1.
+          rewrite <- meet_equiv in H3.
+          rewrite <- diff_equiv in H4.
+          econstructor;
+            try eapply H3; try eapply H4;
+            try (apply functional_extensionality; intro i;
+                 rewrite H2; reflexivity).
+      + inversion H; subst.
+        eapply IHp2 with
+        (phi :=
+           (fun s => wlp (fun i => e_and [m i; e_neg [z i]]) p2 psi s /\
+                     (forall i, s[[e]](i) = z i))); try assumption.
+        unfold hoare_quadruple. intros.
+        destruct H1.
+        unfold wlp in H1.
+        eapply H1.
+        eassumption.
+    - inversion H; subst.
+      remember
+        (fun s =>
+           exists z, (forall i, s[[e]](i) = z i) /\
+                     wlp (fun i => e_and [m i; z i]) (WHILE e DO p) psi s)
+        as wp.
+      assert (forall z,
+                Hoare_proof (fun s => wp s /\ (forall i, s[[e]](i) = z i))
+                            (fun i => e_and [m i; z i]) p wp).
+      + intros.
+        unfold hoare_quadruple in H0.
+        eapply H_Conseq_pre.
+        * eapply IHp with (phi:=fun s => wp s /\ (forall i, s[[e]](i) = z i));
+          try assumption; subst.
+          unfold hoare_quadruple. intros.
+          destruct H1 as [ [z' [H1 H1']] H1''].
+          exists (E_under_state s' e).
+          split; try reflexivity.
+          unfold wlp. intros.
+          apply H1'.
+          rewrite <- meet_equiv in H2, H5|-*.
+          apply functional_extensionality in H1.
+          apply functional_extensionality in H1''.
+          rewrite <- H1.
+          rewrite <- H1'' in H2.
+          generalize H2 H3 H5; clear; intros.
+          econstructor.
+          reflexivity.
+          rewrite fold_mask_of, meet_assoc, meet_double; eassumption.
+          rewrite fold_mask_of, meet_assoc, meet_double.
+          apply (lem_2 _ _ H3) in H2.
+          apply while_sub; assumption.
+        * intros.
+          destruct H1.
+          unfold wlp; intros.
+          rewrite Heqwp in H1|-*.
+          destruct H1 as [z' [H1 H1']].
+          exists (E_under_state st' e).
+          split; try reflexivity.
+          unfold wlp. intros.
+          unfold wlp in H1'.
+          apply H1'.
+          rewrite <- meet_equiv in H5, H6|-*.
+          apply functional_extensionality in H1.
+          apply functional_extensionality in H2.
+          rewrite <- H1.
+          rewrite <- H2 in H5.
+          generalize (lem_2 _ _ H3 _ _ _ H5); intro.
+          econstructor; try apply while_sub; try eassumption.
+          rewrite fold_mask_of, meet_assoc, meet_double.
+          reflexivity.
+      + econstructor.
+        * eapply H_While. eassumption.
+        * intros.
+          rewrite Heqwp.
+          exists (E_under_state s e).
+          split; try reflexivity.
+          unfold wlp. intros.
+          rewrite <- meet_equiv in H5.
+          eapply H2.
+          generalize H5; clear; intros.
+          rewrite meet_equiv in *.
+          remember (WHILE e DO p) as W.
+          remember (mask_of (fun i => e_and [m i; s[[e]](i)])) as mu.
+          induction H5; try (inversion HeqW).
+          { eapply E_While; try eapply E_Inactive.
+            rewrite fold_mask_of, meet_equiv. rewrite <- Heqmu. reflexivity. }
+          { subst.
+            generalize H5_ H5_0; clear; intros.
+            unfold meet in *. rewrite <- meet_equiv in *.
+            rewrite fold_meet in *.
+            rewrite meet_assoc, meet_double in *.
+            econstructor; try eassumption.
+            reflexivity. }
+        * cbv beta.
+          intros.
+          destruct H2.
+          unfold none in H5.
+          rewrite Heqwp in H2.
+          destruct H2 as [z [H2 H2']].
+          unfold wlp in H2'.
+          eapply H2'.
+          assert (mask_of (fun i => e_and [m i; z i]) = empty) by
+              (apply functional_extensionality; intro i;
+               unfold mask_of;
+               rewrite <- (H2 i); rewrite (H5 i); reflexivity).
+          rewrite H6.
+          econstructor.
+  Qed.
+
+  Theorem Relative_Completeness : forall phi (m : T -> Z) p psi,
+                                    regular p ->
+                                    hoare_quadruple phi m p psi ->
+                                    Hoare_proof phi m p psi.
+  Proof.
+    intros.
+    econstructor; try eapply Relative_Completeness'; try eassumption;
+    try unfold wlp; intros.
+    - apply (H0 _ _ H1 H2).
+    - assumption.
+  Qed.
 End SIMT_Definition.
