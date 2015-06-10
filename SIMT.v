@@ -914,4 +914,33 @@ Section SIMT_Definition.
   Definition wlp (m : T -> Z) P (phi : assertion) : assertion :=
     fun st => forall st', eval P (mask_of m) st st' ->
                           phi st'.
+
+  Lemma while_sub :
+    forall e p m s s' s'',
+      stable e p ->
+      sub (meet m (mask_of (E_under_state s' e)))
+          (meet m (mask_of (E_under_state s e))) ->
+      eval (WHILE e DO p) (meet m (mask_of (E_under_state s' e))) s' s'' ->
+      eval (WHILE e DO p) (meet m (mask_of (E_under_state s e))) s' s''.
+  Proof.
+    intros.
+    generalize dependent s.
+    remember (WHILE e DO p) as W.
+    remember (meet m (mask_of (E_under_state s' e))) as mu.
+    induction H1; inversion HeqW; intros.
+    - eapply E_While; try eapply E_Inactive.
+      rewrite meet_assoc, (meet_comm (mask_of (E_under_state s0 e))),
+      fold_mask_of, <- meet_assoc, <- Heqmu, meet_empty_l.
+      reflexivity.
+    - subst.
+      generalize (sub_meet _ _ H1); intro.
+      generalize H0 H1_ H1_0; clear; intros.
+      rewrite (meet_comm m), meet_assoc, <- (meet_assoc m),
+      meet_double, <- meet_comm, <- (meet_comm m) in H0.
+      rewrite meet_assoc, meet_double in H1_, H1_0.
+      econstructor.
+      + reflexivity.
+      + rewrite fold_mask_of; rewrite H0; eassumption.
+      + rewrite fold_mask_of; rewrite H0; eassumption.
+  Qed.
 End SIMT_Definition.
