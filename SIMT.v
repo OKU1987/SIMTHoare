@@ -815,4 +815,61 @@ Section SIMT_Definition.
     rewrite <- H2, <- H3, <- Heqb in H1;
       try assumption; try (destruct (mu i); reflexivity).
   Qed.
+
+  Lemma Soundness_while :
+    forall phi e p m,
+      (forall z : T -> Z,
+         regular p ->
+         forall s s' : state,
+           phi s /\ (forall i : T, s [[e ]]( i) = z i) ->
+           eval p (mask_of (fun i0 : T => e_and [m i0; z i0])) s
+                  s' -> phi s') ->
+      regular (WHILE e DO p) ->
+      forall s s' m',
+        meet (mask_of m') (mask_of (E_under_state s e)) =
+        meet (mask_of m) (mask_of (E_under_state s e)) ->
+        eval (WHILE e DO p) (mask_of m') s s' ->
+        phi s ->
+        phi s' /\ none (fun i : T => e_and [m' i; s' [[e ]]( i)]).
+  Proof.
+    intros phi e p m ? ? s s' m' H2 H1 H3.
+    generalize dependent H2.
+    generalize dependent H3.
+    remember (WHILE e DO p) as W.
+    remember (mask_of m') as Mu.
+    generalize dependent m'.
+    induction H1; inversion HeqW; subst; unfold none in *; intros.
+    - symmetry in HeqMu. apply lem_5_2 in HeqMu.
+      split; try assumption; intros.
+      rewrite (HeqMu i). destruct (s[[e]](i)); reflexivity.
+    - subst. clear IHeval1.
+      inversion H0; subst.
+      rewrite fold_mask_of in *.
+      generalize (H (E_under_state s e) H6 s s' (conj H3 (fun i => refl_equal _))); intros.
+      clear H HeqW.
+      assert (phi s') by (apply H1; rewrite <- meet_equiv, <- H2; assumption).
+      rewrite (meet_equiv m' (E_under_state s e)) in IHeval2.
+      generalize (IHeval2 (refl_equal _) H0 (fun i => e_and [m' i; s[[e]](i)]) (refl_equal _) H).
+      intros H4. clear IHeval2.
+      rewrite <- meet_equiv, H2 in H4.
+      generalize (E_While _ _ _ _ _ _ _ (refl_equal _) H1_ H1_0); intro H'.
+      unfold mask_of in H2, H1_.
+      rewrite H2 in H1_.
+      generalize (sub_meet _ _ (lem_2 _ _ H5 _ _ _ H1_)); intro.
+      rewrite fold_mask_of, (meet_comm _ (mask_of (E_under_state s' e))),
+      meet_assoc, <- (meet_assoc (mask_of m) (mask_of m)),
+      meet_double, meet_comm in H7.
+      rewrite H7, meet_comm in H4.
+      generalize (H4 (refl_equal _)); intro.
+      destruct H8.
+      split; try assumption.
+      generalize (lem_2_while _ _ H5 _ _ _ H'); intro.
+      intro.
+      generalize (H9 i) (H10 i); clear; intros.
+      unfold mask_of in *.
+      destruct (m' i); destruct (s[[e]](i)); destruct (s''[[e]](i));
+      try reflexivity;
+      try (inversion H; fail);
+      try (generalize (H0 (refl_equal _)); intro H'; inversion H').
+  Qed.
 End SIMT_Definition.
