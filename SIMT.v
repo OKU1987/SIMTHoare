@@ -910,4 +910,8 @@ Section SIMT_Definition.
                   (H0 _ H8 s s'0 (conj H4 (fun i => refl_equal _)) H18) H19).
     - apply (Soundness_while _ _ _ _ H0 H1 _ _ m (refl_equal _) H3 H2).
   Qed.
+
+  Definition wlp (m : T -> Z) P (phi : assertion) : assertion :=
+    fun st => forall st', eval P (mask_of m) st st' ->
+                          phi st'.
 End SIMT_Definition.
