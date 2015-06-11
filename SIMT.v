@@ -330,15 +330,6 @@ Section SIMT_Definition.
     destruct (m i); simpl; destruct (z i); try reflexivity.
   Qed.
 
-  Lemma lt_0_N : lt 0 N.
-    unfold N.
-    destruct num_threads.
-    simpl.
-    assumption.
-  Qed.
-
-  Definition zero_T : T := existT _ 0 (lt_0_N).
-
   Ltac simplify_mask' :=
     match goal with
       | [ H : context[mask_of] |- _] => unfold mask_of in H
@@ -349,16 +340,6 @@ Section SIMT_Definition.
     end.
 
   Ltac simplify_mask := repeat simplify_mask'; simpl in *|-*.
-
-  Ltac inactive_is_not_active :=
-    simplify_mask; zero_lt_pos;
-    match goal with
-      | [ H' : context[empty = _] |- _] =>
-        assert (devil : false = true) by apply (equal_f H' zero_T);
-          inversion devil
-      | _ => idtac
-    end.
-  Unset Ltac Debug.
 
   Definition hoare_quadruple (phi : assertion) m (P : program) (psi : assertion) : Prop :=
     forall s s' : state,
@@ -453,13 +434,12 @@ Section SIMT_Definition.
             subst.
             reflexivity. }
           { unfold lassign. intros. split.
-            - inactive_is_not_active.
-              apply equal_f with (x:=i) in H2.
+            - apply equal_f with (x:=i) in H2.
               destruct (m i); reflexivity.
             - intros. destruct H.
               apply equal_f with (x:=i) in H2.
-              inactive_is_not_active.
-              destruct (m i); try (inactive_is_not_active; contradict H2;
+              unfold mask_of in *.
+              destruct (m i); try (unfold mask_of in *; contradict H2;
                                   discriminate);
               contradict H; reflexivity. }
         * destruct s'.
@@ -477,7 +457,7 @@ Section SIMT_Definition.
             subst.
             reflexivity. }
           { unfold sassign. intros.
-            inactive_is_not_active.
+            unfold mask_of in *.
             unfold forall_in_mask. unfold exists_in_mask.
             left.
             split; intros.
