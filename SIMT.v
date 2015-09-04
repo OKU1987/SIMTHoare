@@ -42,13 +42,6 @@ Section SIMT_Definition.
       | shared l, shared l' => l == l'
     end.
 
-  Definition eq_V n (v v' : V n) : bool :=
-    match v, v' with
-      | local_variable l, local_variable l' => eq_lv _ l l'
-      | shared_variable s, shared_variable s' => eq_sv _ s s'
-      | _, _ => false
-    end.
-
   Lemma lv_eqP : forall n, Equality.axiom (eq_lv n).
   Proof.
     move => n.
@@ -70,29 +63,10 @@ Section SIMT_Definition.
       repeat move/eqP => ?; congruence.
   Qed.
 
-  Lemma V_eqP : forall n, Equality.axiom (eq_V n).
-  Proof.
-    move => n.
-    case.
-    { move => l y.
-      case: y => l'.
-      { rewrite /eq_V.
-        case: (lv_eqP n l l'); constructor; congruence. }
-      { constructor. done. }}
-    { move => s y.
-      case: y => s'.
-      { constructor. done. }
-      { rewrite /eq_V.
-        case: (sv_eqP n s s'); constructor; congruence. }
-    }
-  Qed.
-
   Canonical lv_eqMixin n := EqMixin (lv_eqP n).
   Canonical sv_eqMixin n := EqMixin (sv_eqP n).
   Canonical lv_eqType n := Eval hnf in EqType _ (lv_eqMixin n).
   Canonical sv_eqType n := Eval hnf in EqType _ (sv_eqMixin n).
-  Canonical V_eqMixin n := EqMixin (V_eqP n).
-  Canonical V_eqType n := Eval hnf in EqType _ (V_eqMixin n).
 
 
   Definition Op n := n.-tuple int -> int.
