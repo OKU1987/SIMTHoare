@@ -20,11 +20,8 @@ Section SIMT_Definition.
   Definition arity_eqType := nat_eqType.
   Definition variable_name := nat.
 
-  Inductive LV (n:arity) : Set :=
-  | local : variable_name -> LV n.
-
-  Inductive SV (n:arity) : Set :=
-  | shared : variable_name -> SV n.
+  Inductive LV (n:arity) : Set := local of variable_name.
+  Inductive SV (n:arity) : Set := shared of variable_name.
 
   Inductive V n : Set :=
   | local_variable : LV n -> V n
