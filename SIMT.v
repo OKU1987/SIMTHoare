@@ -191,9 +191,6 @@ Section SIMT_Definition.
     end
       where "s '[[' e ']](' i ')'" := (E_under_state s e i).
 
-  Definition update n (f : n.-tuple int -> int) zs z :=
-    fun zs' => if zs == zs' then z else f zs'.
-
   Definition update_state (s : state) n (x : V n) (x' : (T -> n.-tuple int -> int) + (n.-tuple int -> int)) : state.
     destruct x; destruct x'; [|exact s|exact s|].
     {
@@ -264,7 +261,7 @@ Section SIMT_Definition.
                            forall i : T,
                              s'.1 n x i =1
                              if i \in mu then
-                               update n (s.1 n x i) (s[[[es]]](i)) (s[[e]](i))
+                               [eta s.1 n x i with s[[[es]]](i) |-> s[[e]](i)]
                              else
                                s.1 n x i
                          else s'.1 n y =2 s.1 n y
@@ -492,13 +489,11 @@ Section SIMT_Definition.
           case:ifP => /= H; split => // => H0.
           { rewrite (negbTE H) in H0.
             case: H0 => // H0.
-            rewrite /update.
-            case:ifP => // .
-            rewrite (negbTE H0) // . }
+            case:ifP => // H1.
+            rewrite eq_sym (negbTE H0) // in H1. }
           { case: H0 => H0 H1.
-            rewrite /update.
             case:ifP => // .
-            rewrite H1 // . }
+            rewrite eq_sym H1 // . }
           { case H0 => // . }
         }
       }
@@ -574,14 +569,15 @@ Section SIMT_Definition.
           { apply (elimT eqP) in H2.
             subst.
             rewrite /=/lassign in H1.
-            rewrite /mask_of/update/bool_of_int/eqfun/= => ns.
+            rewrite /mask_of/bool_of_int/eqfun/= => ns.
             rewrite (introT eqP erefl).
             move: (H1 ns i) => {H1}.
             rewrite /= .
             case => H H0.
             rewrite in_set.
-            case:ifP => // => H2.
-            { case:ifP => H3.
+            case:ifP => //= => H2.
+            { rewrite eq_sym.
+              case:ifP => H3.
               { rewrite H0 => //= . }
               { rewrite H3/negb in H0.
                 rewrite H => // .
