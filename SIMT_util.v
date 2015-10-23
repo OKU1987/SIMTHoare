@@ -3,6 +3,7 @@ Require Import ZArith.
 Import VectorNotations.
 Require Import JMeq.
 Require Import FunctionalExtensionality.
+Require Import Vector_of_tuple.
 
 Ltac existT_eq' :=
   match goal with
@@ -63,3 +64,6 @@ Ltac functional_extensionality_dep_pair_r :=
       rewrite <- (functional_extensionality_dep f g); try reflexivity
     | _ => idtac
   end.
+
+Definition Vector_of_tuple := Vector_of_tuple.Vector_of_tuple.
+Definition tuple_of_Vector := Vector_of_tuple.tuple_of_Vector.
