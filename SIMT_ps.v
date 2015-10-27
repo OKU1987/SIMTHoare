@@ -115,3 +115,4 @@ Ltac apply_hoare_rules' loopinv :=
      apply_hoare_rules' loopinv).
 
 Ltac apply_hoare_rules := repeat (apply_hoare_rules' False).
+Ltac apply_hoare_rules_with loopinv := repeat (apply_hoare_rules' loopinv).
