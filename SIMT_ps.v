@@ -70,3 +70,14 @@ Ltac simplify_update_state' :=
 Ltac simplify_update_state :=
   repeat unfold_update_state; simpl; repeat simplify_update_state';
   rewrite ?eq_refl/= .
+
+Ltac rename_for_newvar' H x :=
+  let asgn_x := fresh "asgn_to_"x in
+  rename H into asgn_x;
+    apply (elimT eqP) in asgn_x.
+Ltac rename_for_newvar :=
+  match goal with
+    | [ H : context[?x _==_] |- _ ] =>
+      rename_for_newvar' H x
+    | _ => idtac
+  end.
