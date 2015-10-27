@@ -85,3 +85,33 @@ Ltac destruct_by_andP H :=
   let H' := fresh H"'" in
   try (move: H;
        case/andP => H H'; destruct_by_andP H').
+
+Ltac apply_hoare_rules' loopinv :=
+  try
+    (match goal with
+       | [|-Hoare_proof _ _ _ sync _] => eapply H_Sync
+       | [|-Hoare_proof _ (fun _ => forall _, assign _ _ _ _ _ _ _ _ -> _ _) _
+                        (?x @ ?es :::= ?e) _] =>
+         eapply H_Assign
+       | [|-Hoare_proof _ _ _ (?x @ ?es :::= ?e) _] =>
+         (try eapply H_Assign; try (eapply H_Conseq_pre; [eapply H_Assign|]))
+       | [|-Hoare_proof _ _ _ (?P;; sync) _] =>
+         eapply H_Seq; try eapply H_Sync
+       | [|-Hoare_proof _ _ _ (?P;; (WHILE _ DO _)) _] =>
+         eapply H_Seq with (psi:=loopinv)
+       | [|-Hoare_proof _ _ _ (?P;; ?Q) _] =>
+         eapply H_Seq
+       | [|-Hoare_proof _ _ _ (IFB _ THEN _ ELSE _) _] =>
+         let z' := fresh "z" in eapply H_If; move => z'
+       | [|-Hoare_proof _ _ ?m (WHILE ?e DO ?P)
+                        (fun _ => loopinv _ /\ none _ _)] =>
+         let z' := fresh "z" in eapply H_While; move => z'
+       | [|-Hoare_proof _ _ ?m (WHILE ?e DO ?P) _ ] =>
+         let z' := fresh "z" in
+         eapply H_Conseq_post; [eapply H_While; move => z'|]
+       | [|-Hoare_proof _ _ _ skip _] => eapply H_Skip
+       | _ => fail
+     end;
+     apply_hoare_rules' loopinv).
+
+Ltac apply_hoare_rules := repeat (apply_hoare_rules' False).
