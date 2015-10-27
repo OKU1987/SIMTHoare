@@ -116,3 +116,19 @@ Ltac apply_hoare_rules' loopinv :=
 
 Ltac apply_hoare_rules := repeat (apply_hoare_rules' False).
 Ltac apply_hoare_rules_with loopinv := repeat (apply_hoare_rules' loopinv).
+
+Require Import seq.
+Require Import bigop ssralg.
+Open Scope ring_scope.
+
+Ltac apply_big_nat_widen m n1 n2 H :=
+  match goal with
+    | [|-context[\big[_/_]_(_ <= _ < _ | (_ <= ?n)%nat) _ _]]=>
+      rewrite -2?(@big_nat_widen _ 0%:Z +%R m n1 n2 _ _ H);
+      rewrite -(@big_nat_widen _ 0%:Z +%R m n1 n2 predT _ H)
+    | [|-context[\big[_/_]_(_ <= _ < _ | ?P _) _ _]]=>
+      rewrite (@big_nat_widen _ 0%:Z +%R m n1 n2 [eta P] _ H);
+      rewrite (@big_nat_widen _ 0%:Z +%R m n1 n2 [eta xpredC P] _ H);
+      rewrite (@big_nat_widen _ 0%:Z +%R m n1 n2 predT _ H)
+    | _ => fail 1 "a"
+  end.
