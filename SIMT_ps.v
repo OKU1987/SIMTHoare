@@ -71,6 +71,16 @@ Ltac simplify_update_state :=
   repeat unfold_update_state; simpl; repeat simplify_update_state';
   rewrite ?eq_refl/= .
 
+Lemma exprzn : forall n m : nat, (exprz n%:Z m) = (expn n m).
+Proof.
+  intros.
+  generalize dependent n.
+  generalize dependent m.
+  elim.
+  { intro. rewrite expr0z expn0. done. }
+  { intros. rewrite exprSz. rewrite H. rewrite expnS. done. }
+Qed.
+
 Ltac rename_for_newvar' H x :=
   let asgn_x := fresh "asgn_to_"x in
   rename H into asgn_x;
