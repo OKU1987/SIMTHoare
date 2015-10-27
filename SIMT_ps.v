@@ -33,3 +33,40 @@ Notation "'IFB' e 'THEN' P 'ELSE' Q" := (P_if e P Q) (at level 135).
 Notation "'WHILE' e 'DO' P" := (P_while e P) (at level 140).
 
 Notation "s '[[' e ']](' i ')'" := (@E_under_state _ s e i) (at level 50).
+
+
+Ltac unfold_update_state :=
+  match goal with
+    | [ H : context[update_state]|-_] => rewrite/update_state in H
+    | [ |- context[update_state]] => rewrite/update_state
+    | _ => fail
+  end.
+Ltac simplify_update_state' :=
+  match goal with
+    | [ H : context[eq_rect_r] |- _] => rewrite/eq_rect_r in H
+    | [ H : context[eq_rec_r] |- _] => rewrite/eq_rec_r in H
+    | [ H : context[eq_rect ?x _ _ _ _ _ _] |- _] =>
+      destruct (@eqnP x x); rewrite // in H;
+      rewrite (eq_irrelevance (Logic.eq_sym _) erefl)
+    | [ H : context[eq_rec ?x _ _ _ _ _ _] |- _] =>
+      destruct (@eqnP x x); rewrite // in H;
+      rewrite (eq_irrelevance (Logic.eq_sym _) erefl)
+    | [ |- context[eq_rect_r]] => rewrite/eq_rect_r
+    | [ |- context[eq_rec_r]] => rewrite/eq_rec_r
+    | [ |-context[eq_rect ?x _ _ _ _ _ _]] =>
+      destruct (@eqnP x x); rewrite //;
+      rewrite (eq_irrelevance (Logic.eq_sym _) erefl)
+    | [ |-context[eq_rec ?x _ _ _ _ _ _]] =>
+      destruct (@eqnP x x); rewrite // ;
+      rewrite (eq_irrelevance (Logic.eq_sym _) erefl)
+    | [ |-context[@eq_op]] =>
+      case: eqP => // => _
+    | [ H : context[eqnP] |- _] =>
+      move: H; case: eqnP => //= _ H
+    | [ |-context[eqnP]] =>
+      case: eqnP => //= _
+    | _ => fail
+  end.
+Ltac simplify_update_state :=
+  repeat unfold_update_state; simpl; repeat simplify_update_state';
+  rewrite ?eq_refl/= .
