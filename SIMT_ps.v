@@ -81,3 +81,7 @@ Ltac rename_for_newvar :=
       rename_for_newvar' H x
     | _ => idtac
   end.
+Ltac destruct_by_andP H :=
+  let H' := fresh H"'" in
+  try (move: H;
+       case/andP => H H'; destruct_by_andP H').
