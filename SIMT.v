@@ -91,6 +91,11 @@ Section SIMT_Definition.
                 | Tuple [x; y] _ => x %/ y
                 | _ => 0
               end.
+  Definition e_mod : Op 2 :=
+    fun zs => match zs with
+                | Tuple [x; y] _ => x %% y
+                | _ => 0
+              end.
   Definition int_of_bool := fun b => if b then 1%:Z else 0.
   Definition bool_of_int := fun z : int => z != 0.
   Lemma int_of_boolK : cancel int_of_bool bool_of_int.

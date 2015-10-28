@@ -26,6 +26,7 @@ Notation "a '+E' b" := (@funcT 2 e_plus [tuple a; b]) (at level 60).
 Notation "a '-E' b" := (@funcT 2 e_minus [tuple a; b]) (at level 60).
 Notation "a '*E' b" := (@funcT 2 e_mult [tuple a; b]) (at level 60).
 Notation "a '/E' b" := (@funcT 2 e_div [tuple a; b]) (at level 60).
+Notation "a '%E' b" := (@funcT 2 e_mod [tuple a; b]) (at level 60).
 Notation "a '&&' b" := (@funcT 2 e_and [tuple a; b]).
 Notation "a '<E' b" := (@funcT 2 e_lt [tuple a; b]) (at level 90).
 Notation "a '<=E' b" := (@funcT 2 e_leq [tuple a; b]) (at level 90).
