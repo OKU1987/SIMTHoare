@@ -30,6 +30,7 @@ Notation "a '%E' b" := (@funcT 2 e_mod [tuple a; b]) (at level 60).
 Notation "a '&&' b" := (@funcT 2 e_and [tuple a; b]).
 Notation "a '<E' b" := (@funcT 2 e_lt [tuple a; b]) (at level 90).
 Notation "a '<=E' b" := (@funcT 2 e_leq [tuple a; b]) (at level 90).
+Notation "a '=E' b" := (@funcT 2 e_eq [tuple a; b]) (at level 90).
 Notation "'!' a" := (@funcT 1 e_neg [tuple a]) (at level 35, right associativity).
 Notation "'c' z" := (@funcT 0 (const z) [tuple]) (at level 20).
 

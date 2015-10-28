@@ -115,6 +115,12 @@ Section SIMT_Definition.
                                     (bool_of_int y))
                 | _ => 0
               end.
+  Definition e_eq : Op 2 :=
+    fun zs => match zs with
+                | Tuple [x; y] _ =>
+                  int_of_bool (x == y)
+                | _ => 0
+              end.
   Definition e_lt : Op 2 :=
     fun zs => match zs with
                 | Tuple [x; y] _ =>
