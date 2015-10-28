@@ -9,6 +9,7 @@ Section SIMT_Definition.
   Local Notation "z < z'" := (intOrdered.ltz z z').
   Local Notation "z <= z'" := (intOrdered.lez z z').
   Local Notation "z + z'" := (intZmod.addz z z').
+  Local Notation "z - z'" := (intZmod.addz z (intZmod.oppz z')).
   Local Notation "z * z'" := (intRing.mulz z z').
   Implicit Arguments Vector_of_tuple [T n].
   Implicit Arguments tuple_of_Vector [T n].
