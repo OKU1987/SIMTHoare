@@ -31,22 +31,6 @@ Ltac existT_eq' :=
 
 Ltac existT_eq := repeat existT_eq'.
 
-
-Ltac zero_lt_pos :=
-  match goal with
-    | [ H : (?z > 0)%Z,
-            H0 : context[match ?z with
-                    | 0%Z => Eq
-                    | Z.pos _ => Lt
-                    | Z.neg _ => Gt
-                  end]
- |- _ ] =>
-       simpl in H; unfold Zgt in H; apply Zcompare_Gt_spec in H;
-       destruct H; simpl in H; rewrite <- Zplus_0_r_reverse in H;
-       simpl in H0; rewrite H in H0; simpl in H0
-    | _ => idtac
-  end.
-
 Ltac functional_extensionality_pair_l :=
   match goal with
     | [ |- context[(?f, ?b) = (?g, ?b)]] =>
