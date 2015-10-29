@@ -158,6 +158,21 @@ Ltac asgn_to_scalar_never_fail H i :=
            fail 1 "This tactic cannot be applied terms of type: "msg
   end;
   eliminate_existsP.
+Ltac no_active_threads_no_asgn_to H :=
+  match goal with
+    | [ H' : none _ _ |- _] =>
+      match type of H with
+        | context[FiniteQuant.quant0b] =>
+          let H0 := fresh H"'" in
+          let i' := fresh "i" in
+          try (destruct H as [ [H H0] | H];
+               try (eliminate_existsP' i'; rename_for_newvar;
+                    rewrite in_set (eqP (H' i')) // in H))
+        | _ => let msg := (type of H) in
+               fail 1 "This tactic cannot be applied terms of type: "msg
+      end
+    | _ => fail 1 "There may be activated threads"
+  end.
 
 Ltac apply_hoare_rules' loopinv :=
   try
