@@ -116,6 +116,28 @@ Ltac destruct_by_andP H :=
   let H' := fresh H"'" in
   try (move: H;
        case/andP => H H'; destruct_by_andP H').
+Ltac eliminate_forallP' i :=
+  match goal with
+    | [ H : context[ FiniteQuant.quant0b] |- _ ] =>
+      try (move: (elimT forallP H) => {H} H;
+           try (move: (H i) => {H} H);
+           try (rewrite /mask_of/bool_of_int ?in_set//= in H));
+        destruct_by_andP H
+    | _ => idtac
+  end.
+Ltac eliminate_forallP i := eliminate_forallP' i; rename_for_newvar.
+Ltac eliminate_existsP' i' :=
+  match goal with
+    | [ H : context[FiniteQuant.quant0b] |- _ ] =>
+      try (move: (elimT existsP H) => {H} H;
+           try (rewrite in_set/mask_of in H);
+           case H => i' {H} H
+          );
+        destruct_by_andP H
+    | _ => idtac
+  end.
+Ltac eliminate_existsP := let i' := fresh "i" in
+                        eliminate_existsP' i'; rename_for_newvar.
 
 Ltac apply_hoare_rules' loopinv :=
   try
