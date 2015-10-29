@@ -174,6 +174,18 @@ Ltac no_active_threads_no_asgn_to H :=
     | _ => fail 1 "There may be activated threads"
   end.
 
+Ltac asgn_not_occur_due_to H H' :=
+  match type of H with
+    | context[FiniteQuant.quant0b] =>
+      let H0 := fresh H"'" in
+      let i' := fresh "i" in
+      try (destruct H as [ [H H0] | H];
+           try (eliminate_existsP' i'; rename_for_newvar;
+                rewrite in_set (eqP (H' i')) // in H))
+    | _ => let msg := (type of H) in
+           fail 1 "This tactic cannot be applied terms of type: "msg
+  end.
+
 Ltac apply_hoare_rules' loopinv :=
   try
     (match goal with
