@@ -138,6 +138,26 @@ Ltac eliminate_existsP' i' :=
   end.
 Ltac eliminate_existsP := let i' := fresh "i" in
                         eliminate_existsP' i'; rename_for_newvar.
+Ltac asgn_to_scalar_never_fail H i :=
+  match type of H with
+    | context[FiniteQuant.quant0b] =>
+      let H0 := fresh H"'" in
+      try (destruct H as [ [H H0] | H];
+           eliminate_forallP' i;
+           try (move: (introT eqP H0) => {H0} H0; rename_for_newvar);
+           try (move: H;
+                match goal with
+                  | [H' : SIMT.all _ _ |- _] =>
+                    try (rewrite ?in_set/bool_of_int (H' i)// -(H' i) //)
+                  | [H' : context[setT]|- _] =>
+                    rewrite in_set// in H'
+                  | _ => fail 1 "There may be inactivated threads"
+                end;
+                move => {H} H))
+    | _ => let msg := (type of H) in
+           fail 1 "This tactic cannot be applied terms of type: "msg
+  end;
+  eliminate_existsP.
 
 Ltac apply_hoare_rules' loopinv :=
   try
