@@ -34,6 +34,27 @@ Notation "'WHILE' e 'DO' P" := (P_while e P) (at level 140).
 
 Notation "s '[[' e ']](' i ')'" := (@E_under_state _ s e i) (at level 50).
 
+Ltac simplify_mask' :=
+  match goal with
+    | [ H : SIMT.all _ _ |- _] => apply lem_5_1 in H
+    | [ H : context[e_and] |- _] => rewrite -?setD_e_and_neg-?setI_e_and in H
+    | [ |- context[e_and] ] => rewrite -?setD_e_and_neg-?setI_e_and
+    | _ => fail
+  end.
+Ltac simplify_mask'' :=
+  match goal with
+    | [ H : mask_of _ ?z = _, H0 : context[?z] |- _] => rewrite H in H0
+    | [ H : context[setI] |- _] =>
+      rewrite ?/T_mask?/empty?setTI?setIT?setI0?set0I in H
+    | [ H : context[setD] |- _] =>
+      rewrite ?/T_mask?/empty?setTD?setDT?setD0?set0D in H
+    | [ |- context[setI]] =>
+      rewrite ?/T_mask?/empty?setTI?setIT?setI0?set0I
+    | [ |- context[setD]] =>
+      rewrite ?/T_mask?/empty?setTD?setDT?setD0?set0D
+    | _ => fail
+  end.
+Ltac simplify_mask := repeat simplify_mask'; repeat simplify_mask''.
 
 Ltac unfold_update_state :=
   match goal with
