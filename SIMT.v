@@ -76,6 +76,11 @@ Section SIMT_Definition.
                 | Tuple [x; y] _ => x + y
                 | _ => 0
               end.
+  Definition e_minus : Op 2 :=
+    fun zs => match zs return int with
+                | Tuple [x; y] _ => x - y
+                | _ => 0
+              end.
   Definition e_mult : Op 2 :=
     fun zs => match zs return int with
                 | Tuple [x; y] _  => x * y

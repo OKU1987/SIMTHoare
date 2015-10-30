@@ -17,6 +17,7 @@ Implicit Arguments funcT [n].
 Implicit Arguments varT [n].
 
 Notation "a '+E' b" := (@funcT 2 e_plus [tuple a; b]) (at level 60).
+Notation "a '-E' b" := (@funcT 2 e_minus [tuple a; b]) (at level 60).
 Notation "a '*E' b" := (@funcT 2 e_mult [tuple a; b]) (at level 60).
 Notation "a '/E' b" := (@funcT 2 e_div [tuple a; b]) (at level 60).
 Notation "a '&&' b" := (@funcT 2 e_and [tuple a; b]).
