@@ -254,3 +254,266 @@ Ltac apply_big_nat_widen m n1 n2 H :=
       rewrite (@big_nat_widen _ 0%:Z +%R m n1 n2 predT _ H)
     | _ => fail 1 "a"
   end.
+
+Module Kogge_Stone.
+  Definition s : SV 0%nat := shared _ 0%nat.
+
+  (* The array length is N *)
+  Lemma implements_prefixsum :
+    forall (n : nat) (N : { n : nat | 0%nat < n}) (a : SV 1%nat) (a0 : 1.-tuple int -> int),
+      (exists l : nat, sval N = expn 2 l) ->
+      n = (sval N)%nat ->
+      Hoare_proof N
+                  (fun s : state _ =>
+                     forall e i,
+                       s[[varT a [tuple c e]]](i) = a0 [tuple e])
+                  (fun _ => 1%:Z)
+                  (s ::= c 1%nat
+                     ;;
+                     (WHILE (`s <E c n) DO
+                            (IFB (`s <=E tid) THEN
+                                 (a @ [tuple tid] :::= varT a[tuple tid] +E varT a[tuple tid -E `s])
+                                 ELSE skip
+                                 ;;
+                                 s ::= (`s *E c 2%nat)
+                                 ;;
+                                 sync
+                            )
+                     )
+                  )
+                  (fun s : state _ =>
+                     forall (i : T N) (j : nat),
+                       j < sval N ->
+                       s[[varT a [tuple c j%nat]]](i) =
+                       (\sum_(0 <= m < j+1) a0 [tuple (Posz m)])).
+  Proof.
+    move=> n N a a0 N_2exp n_2N.
+    remember
+      (fun st =>
+         exists l : nat,
+           (forall i : T N, st[[`s]](i) = (2 ^ l)%:Z) /\
+           (2 ^ l <= n)%nat /\
+           (forall j,
+             ((2 ^ l - 1 < j)%nat -> (j < n) ->
+              (forall i, st[[varT a [tuple c j]]](i) = (\sum_(j-2^l+1 <= k < j+1) (a0 [tuple k%:Z]))))) /\
+           (forall j,
+              ((j < 2 ^ l)%nat ->
+               (forall i, st[[varT a [tuple c j]]](i) = (\sum_(0 <= k < j+1) (a0 [tuple k%:Z])))))
+      ) as loopinv.
+    apply_hoare_rules_with loopinv.
+    { subst.
+      move=> s0 pre_cond new_s.
+      case new_s => // => {new_s} new_s.
+      rewrite /sassign/= => asgn_to_new_s.
+      destruct N_2exp as [l N_2exp].
+      move: (asgn_to_new_s [tuple]) => {asgn_to_new_s} asgn_to_new_s.
+      simplify_update_state.
+      exists 0%nat.
+      rewrite N_2exp leq_exp2l//= (leq0n l) //= expn0.
+      move: (Ordinal (svalP N)) => th0.
+      asgn_to_scalar_never_fail asgn_to_new_s th0.
+      rewrite/const/= in pre_cond,asgn_to_new_s|-*.
+      repeat split => //; move=> j.
+      { rewrite -[(1 - 1)%nat]add0n addnBA // addnK => j_gt_0 _ i0.
+        rewrite (pre_cond j i0) subnK // addn1 big_nat1 // . }
+      { rewrite ltnS leqn0 => j_lt_1 i0.
+        rewrite (pre_cond j i0) (elimT eqP j_lt_1) add0n big_nat1 // . }}
+    { cbv beta.
+      move=> s0 pre_cond new_a asgn_to_new_a new_s asgn_to_new_s H.
+      destruct pre_cond as [ [loopinv_pre while_cond] if_cond].
+      destruct new_a as [new_a|new_a]; destruct new_s as [new_s|new_s]; rewrite // .
+      rewrite /s_es in asgn_to_new_a,asgn_to_new_s.
+      destruct H; rewrite Heqloopinv in loopinv_pre|-*; last first.
+      { destruct loopinv_pre as [l [H7 [H7' [H7'' H7''']]]].
+        exists l.
+        repeat split => // .
+        { move: (asgn_to_new_s [tuple]) => {asgn_to_new_s} asgn_to_new_s i.
+          no_active_threads_no_asgn_to asgn_to_new_s.
+          simplify_update_state.
+          move: (H7 i) => /= => {H7} H7.
+          rewrite -H7//= . }
+        { move: (asgn_to_new_s [tuple]) => {asgn_to_new_s} asgn_to_new_s j H8 H8' i.
+          move: (asgn_to_new_a [tuple j%:Z]) => {asgn_to_new_a} asgn_to_new_a.
+          no_active_threads_no_asgn_to asgn_to_new_a.
+          simplify_update_state.
+          rewrite -(H7'' _ H8 H8' i)// . }
+        { move: (asgn_to_new_s [tuple]) => {asgn_to_new_s} asgn_to_new_s j H8 i.
+          move: (asgn_to_new_a [tuple j%:Z]) => {asgn_to_new_a} asgn_to_new_a.
+          no_active_threads_no_asgn_to asgn_to_new_a.
+          simplify_update_state.
+          move: (H7''' j).
+          rewrite -(H7''' _ H8 i)//= . }
+      }
+      { subst.
+        destruct loopinv_pre as [l [old_s [n_ge_2expl [old_a old_a']]]].
+        move: (asgn_to_new_s [tuple]) => {asgn_to_new_s} asgn_to_new_s.
+        simplify_update_state.
+        destruct N_2exp as [l_N N_2exp].
+        move: n_ge_2expl.
+        rewrite leq_eqVlt.
+        case/orP.
+        { rewrite eq_sym => n_eq_2expl.
+          apply (elimT eqP) in n_eq_2expl.
+          rewrite ?exprzn?n_eq_2expl/const/= in old_s,while_cond.
+          move: (Ordinal (svalP N)) => th0.
+          move: (H th0).
+          rewrite -(while_cond th0).
+          rewrite intOrdered.ltz_def-(old_s th0)eq_refl/negb// . }
+        { move => n_gt_2expl.
+          exists (l.+1)%nat.
+          repeat split => // .
+          { move => i.
+            asgn_to_scalar_never_fail asgn_to_new_s (Ordinal (svalP N)).
+            rewrite /= in old_s.
+            rewrite asgn_to_new_s0 (old_s i) ?exprzn/= -expnSr// . }
+          { rewrite N_2exp in n_gt_2expl|-*.
+            apply ltn_pexp2l in n_gt_2expl => // .
+            apply leq_pexp2l => // . }
+          { move => j j_gt_subn_2_expl1 j_lt_n i.
+            assert (2 ^ l - 1 < 2 ^ l.+1 - 1)%nat.
+            { apply ltn_sub2r.
+              { clear.
+                elim l => // n IH.
+                apply (ltn_trans IH).
+                rewrite ltn_exp2l// . }
+              rewrite ltn_exp2l// . }
+            rewrite eq_refl.
+            move: (asgn_to_new_a [tuple j%:Z]) => {asgn_to_new_a} asgn_to_new_a.
+            move: (svalP N) => /= => N_gt_0.
+            simplify_mask.
+            certify_asgn_performed_by asgn_to_new_a (Ordinal j_lt_n) H.
+            { move: (old_a j (ltn_trans H0 j_gt_subn_2_expl1) j_lt_n i) => {old_a} old_a.
+              move: (old_s (Ordinal j_lt_n)) (if_cond (Ordinal j_lt_n)).
+              rewrite /= => old_s_eq_2expl.
+              rewrite old_s_eq_2expl ?exprzn/intOrdered.lez/= .
+              rewrite -(leq_add2r 1) ?subn1 ?addn1 in H0.
+              rewrite subn1 -(ltn_add2r 1) ?addn1 in j_gt_subn_2_expl1.
+              rewrite ?prednK in H0,j_gt_subn_2_expl1; try by rewrite expn_gt0.
+              rewrite -ltnS (ltn_trans H0 j_gt_subn_2_expl1)/int_of_bool => z0_true.
+              rewrite ?in_set -z0_true/= negbF// in asgn_to_new_a.
+                by apply (introT eqP), val_inj. }
+            { eliminate_existsP.
+              move: (old_a j (ltn_trans H0 j_gt_subn_2_expl1) j_lt_n i0) => /= => old_a0.
+              rewrite /const in old_a0.
+              rewrite /= in asgn_to_new_a0,asgn_to_new_a'.
+              apply (elimT eqP) in asgn_to_new_a'.
+              inversion asgn_to_new_a' => {asgn_to_new_a'}.
+              subst.
+              rewrite old_a0 in asgn_to_new_a0.
+              rewrite ?in_set/bool_of_int/= in asgn_to_new_a.
+              move: (if_cond i0) asgn_to_new_a (old_s i0) => /= => {old_s}.
+              rewrite /int_of_bool.
+              case:ifP => old_s_leq_i0 z0_eq; rewrite -z0_eq // => _ old_s.
+              rewrite old_s ?exprzn/= in old_s_leq_i0,asgn_to_new_a0.
+              rewrite /intOrdered.lez in old_s_leq_i0.
+              rewrite /intZmod.oppz/= in asgn_to_new_a0.
+              rewrite expnS in j_gt_subn_2_expl1|-*.
+              move: (asgn_to_new_a0) (expn_gt0 2 l) old_s_leq_i0 old_a old_a0 j_gt_subn_2_expl1.
+              case:(expn 2 l) => // n {asgn_to_new_a0} asgn_to_new_a _ n_lt_i0 old_a old_a0 j_cond.
+              rewrite n_lt_i0 in asgn_to_new_a.
+              assert (j_cond' : (n.+1 - 1 < i0 - n.+1)%nat)
+                by rewrite mul2n -addnn -(@subnK (succn n) i0) -?addnBA 1?addnC ?ltn_add2r in j_cond => // .
+              move: (leq_sub (leqnn i0) (leq0n n.+1)).
+              rewrite subn0 => i0_n1_lt_i0.
+              move: (old_a _ j_cond' (leq_ltn_trans i0_n1_lt_i0 j_lt_n) i0).
+              rewrite /const/= => old_a0'.
+              move: asgn_to_new_a.
+              rewrite old_a0' intZmod.addzC -subnDA addnn mul2n.
+              remember (i0 - n.+1 + 1)%nat as mid.
+              remember (i0 - (n.+1).*2 + 1)%nat as low.
+              assert (low <= mid)
+                by rewrite Heqlow Heqmid /= leq_add2r -addnn subnDA leq_sub2r// .
+              remember (index_iota low mid) as lst.
+              remember (index_iota mid (i0+ 1)) as lst'.
+              move: (@big_cat _ 0%:Z (GRing.add_monoid int_ZmodType) nat lst lst' predT (fun k => a0 [tuple k%:Z])).
+              rewrite /= => lst_lst'.
+              rewrite -[intZmod.addz _  _]lst_lst' Heqlst Heqlst' /index_iota// .
+              rewrite -{2}(@subnK low mid) => // .
+              remember (mid - low)%nat as mid_low.
+              rewrite addnC -seq.iota_add addnC.
+              rewrite Heqmid_low {Heqmid_low} addnBA// .
+              rewrite subnK // .
+              rewrite Heqmid leq_add2r // . }}
+          { move => j j_lt_2expl1 i.
+            rewrite eq_refl.
+            move: (asgn_to_new_a [tuple j%:Z]) => {asgn_to_new_a} asgn_to_new_a.
+            simplify_mask.
+            rewrite N_2exp ltn_exp2l// -(@leq_exp2l 2)// -N_2exp in n_gt_2expl.
+            move: (leq_trans j_lt_2expl1 n_gt_2expl) => j_lt_N.
+            case: (ltnP j (2 ^ l)) => j_cmp_2expl.
+            { asgn_not_occur_due_to asgn_to_new_a if_cond; last first.
+              { eliminate_existsP.
+                apply (elimT eqP) in asgn_to_new_a'.
+                rewrite /s_es in asgn_to_new_a'.
+                inversion asgn_to_new_a' => {asgn_to_new_a'}.
+                subst.
+                rename i0 into j.
+                move: (old_s j) (if_cond j) asgn_to_new_a.
+                rewrite /= => {old_s} old_s.
+                rewrite ltnNge in j_cmp_2expl.
+                apply negbTE in j_cmp_2expl.
+                rewrite old_s ?exprzn/= j_cmp_2expl/= => z0_false.
+                rewrite in_set -z0_false/bool_of_int// . }
+              { move: {asgn_to_new_a} (old_a' _ j_cmp_2expl i).
+                rewrite /const/= asgn_to_new_a'// . }}
+            { certify_asgn_performed_by asgn_to_new_a (Ordinal j_lt_N) H.
+              { move: (old_s (Ordinal j_lt_N)) (if_cond (Ordinal j_lt_N)) (while_cond (Ordinal j_lt_N)).
+                rewrite /= => {old_s} old_s.
+                rewrite old_s/const ?exprzn/= j_cmp_2expl => z0_true.
+                rewrite ?in_set -z0_true/= negbF// in asgn_to_new_a.
+                by apply (introT eqP), val_inj. }
+              { eliminate_existsP.
+                rewrite in_set in asgn_to_new_a.
+                rewrite /= in asgn_to_new_a0.
+                apply (elimT eqP) in asgn_to_new_a'.
+                inversion asgn_to_new_a'.
+                subst.
+                rename i0 into j.
+                rewrite -(@prednK (2^l)) ?expn_gt0// -subn1 in j_cmp_2expl.
+                move: (old_a _ j_cmp_2expl j_lt_N j) => /= old_a0.
+                rewrite old_a0 in asgn_to_new_a0.
+                move: (if_cond j) asgn_to_new_a old_s => /= . (* => {old_s}. *)
+                rewrite /int_of_bool.
+                case:ifP => old_s_leq_i0 z0_eq; rewrite -z0_eq ?andbF// => _ old_s.
+                rewrite (old_s i) ?exprzn/= in old_s_leq_i0,asgn_to_new_a0.
+                rewrite /intOrdered.lez in old_s_leq_i0.
+                rewrite /intZmod.oppz/= in asgn_to_new_a0.
+                rewrite expnS in j_lt_2expl1.
+                move: (asgn_to_new_a0) (expn_gt0 2 l) old_s_leq_i0 old_a' old_a0 j_lt_2expl1.
+                case:(expn 2 l) => // n {asgn_to_new_a0} asgn_to_new_a _ n_lt_i0 old_a' old_a0 j_lt_2expl1.
+                rewrite /const/= in old_a'.
+                move: asgn_to_new_a.
+                rewrite ?n_lt_i0 ?subnS ?addn1 ?prednK // ?ltn_subRL ?addn0// .
+                rewrite -subnS (old_a' (j - n.+1)%nat)// .
+                rewrite subnS ?addn1 prednK // ?ltn_subRL ?addn0// .
+                rewrite intZmod.addzC.
+                remember (j - n)%nat as mid.
+                remember (index_iota 0 mid) as lst.
+                remember (index_iota mid j.+1) as lst'.
+                move: (@big_cat _ 0%:Z (GRing.add_monoid int_ZmodType) nat lst lst' predT (fun k => a0 [tuple k%:Z])).
+                rewrite /= => lst_lst'.
+                rewrite -[intZmod.addz _  _]lst_lst' Heqlst Heqlst' /index_iota// .
+                move: (ltnW n_lt_i0) => n_leq_j.
+                rewrite -{2}(@subnK 0 mid) // ?subn0 addn0 Heqmid subnBA// .
+                rewrite -seq.iota_add addnC addnBA // .
+                rewrite (@subnK j) // ?addnK // .
+                apply (leq_trans (leqnSn j) (leq_addr n _)).
+                rewrite -(ltn_add2r n.+1) subnK// ?addnn -mul2n// . }}}}}}
+    { rewrite /none Heqloopinv => {Heqloopinv}  {loopinv} s0 loopinv_none i.
+      case: loopinv_none.
+      case => l loopinv.
+      move: loopinv.
+      case => loopinv.
+      case => loopinv'.
+      case => _ loopinv''' _none j j_cond.
+      rewrite /const/= in loopinv,_none.
+      rewrite (loopinv i) ?exprzn/= int_of_boolK/int_of_bool in _none.
+      move: loopinv' (_none i).
+      rewrite leq_eqVlt.
+      case/orP => H; try rewrite H // .
+      move=> _.
+      rewrite -n_2N -(elimT eqP H)/= in j_cond.
+      rewrite (loopinv''' _ j_cond) // .
+    }
+  Qed.
+End Kogge_Stone.
