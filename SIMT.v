@@ -116,6 +116,12 @@ Section SIMT_Definition.
                   int_of_bool (intOrdered.ltz x y)
                 | _ => 0
               end.
+  Definition e_leq : Op 2 :=
+    fun zs => match zs with
+                | Tuple [x; y] _ =>
+                  int_of_bool (intOrdered.lez x y)
+                | _ => 0
+              end.
 
   Definition zero_tuple := tuple_of 0.
   Record hoge : Type := { foo (A : Set) (B : Set) : A * B }.
