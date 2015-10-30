@@ -172,10 +172,6 @@ Section SIMT_Definition.
     apply (eqType_eq_dep_eq _ _ _ _ _ H0).
   Qed.
 
-
-  Notation "'!' a" := (@func 1 e_neg [a]) (at level 35, right associativity).
-  Notation "'c' z" := (@func 0 (const z) []) (at level 20).
-
   Inductive program : Set :=
   | asgn : forall n, V n -> n.-tuple E -> E -> program
   | skip : program
