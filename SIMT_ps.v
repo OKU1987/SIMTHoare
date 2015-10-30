@@ -8,6 +8,7 @@ Require Import FunctionalExtensionality.
 Implicit Arguments var [n].
 Implicit Arguments Vector_of_tuple [T n].
 Implicit Arguments tuple_of_Vector [T n].
+Open Scope int_scope.
 Coercion Vector_of_tuple : tuple_of >-> Vector.t.
 Coercion tuple_of_Vector : Vector.t >-> tuple_of.
 
@@ -16,6 +17,11 @@ Definition varT := fun n op tpl => @var n op (Vector_of_tuple tpl).
 Implicit Arguments funcT [n].
 Implicit Arguments varT [n].
 
+Notation "z < z'" := (@intOrdered.ltz z z').
+Notation "z <= z'" := (@intOrdered.lez z z').
+Notation "z + z'" := (@intZmod.addz z z').
+Notation "z - z'" := (z + (intZmod.oppz z')).
+Notation "z * z'" := (@intRing.mulz z z').
 Notation "a '+E' b" := (@funcT 2 e_plus [tuple a; b]) (at level 60).
 Notation "a '-E' b" := (@funcT 2 e_minus [tuple a; b]) (at level 60).
 Notation "a '*E' b" := (@funcT 2 e_mult [tuple a; b]) (at level 60).
