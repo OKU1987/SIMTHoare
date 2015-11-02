@@ -22,21 +22,33 @@ Notation "z <= z'" := (@intOrdered.lez z z').
 Notation "z + z'" := (@intZmod.addz z z').
 Notation "z - z'" := (z + (intZmod.oppz z')).
 Notation "z * z'" := (@intRing.mulz z z').
-Notation "a '+E' b" := (@funcT 2 e_plus [tuple a; b]) (at level 60).
-Notation "a '-E' b" := (@funcT 2 e_minus [tuple a; b]) (at level 60).
-Notation "a '*E' b" := (@funcT 2 e_mult [tuple a; b]) (at level 60).
-Notation "a '/E' b" := (@funcT 2 e_div [tuple a; b]) (at level 60).
-Notation "a '%E' b" := (@funcT 2 e_mod [tuple a; b]) (at level 60).
-Notation "a '&&' b" := (@funcT 2 e_and [tuple a; b]).
-Notation "a '<E' b" := (@funcT 2 e_lt [tuple a; b]) (at level 90).
-Notation "a '<=E' b" := (@funcT 2 e_leq [tuple a; b]) (at level 90).
-Notation "a '=E' b" := (@funcT 2 e_eq [tuple a; b]) (at level 90).
-Notation "'!' a" := (@funcT 1 e_neg [tuple a]) (at level 35, right associativity).
-Notation "'c' z" := (@funcT 0 (const z) [tuple]) (at level 20).
 
-Notation "x '::=' e" := (@asgn 0%nat x [tuple] e) (at level 110, right associativity).
-Notation "x '@' i ':::=' e" := (@asgn _ x i e) (at level 110, right associativity).
+Delimit Scope E_scope with E.
+Notation "a + b" := (@funcT 2 e_plus [tuple (a : E); (b : E)]) : E_scope.
+Notation "a - b" := (@funcT 2 e_minus [tuple (a : E); (b : E)]) : E_scope.
+Notation "a * b" := (@funcT 2 e_mult [tuple (a : E); (b : E)]) : E_scope.
+Notation "a / b" := (@funcT 2 e_div [tuple (a : E); (b : E)]) : E_scope.
+Notation "a % b" := (@funcT 2 e_mod [tuple (a : E); (b : E)]) (at level 60) : E_scope.
+Notation "a && b" := (@funcT 2 e_and [tuple (a : E); (b : E)]) : E_scope.
+Notation "a < b" := (@funcT 2 e_lt [tuple (a : E); (b : E)]) : E_scope.
+Notation "a '<=' b" := (@funcT 2 e_leq [tuple (a : E); (b : E)]) : E_scope.
+Notation "a '=E' b" := (@funcT 2 e_eq [tuple (a : E); (b : E)]) (at level 90) : E_scope.
+Notation "'!' a" := (@funcT 1 e_neg [tuple (a : E)]) (at level 35, right associativity) : E_scope.
+Notation "x '@' i '::=' e" := (@asgn _ x i (e : E)) (at level 110, right associativity).
+Notation "x ':::=' e" := (x @ [tuple] ::= (e : E)) (at level 110, right associativity).
 
+Definition E_of_int z := @funcT 0 (const z) [tuple].
+Coercion E_of_int : int >-> E.
+
+Definition scalar : Set := V 0%nat.
+Definition scalar_LV : Set := LV 0%nat.
+Definition scalar_SV : Set := SV 0%nat.
+Definition E_of_scalar (x : scalar) : E := @varT _ x [tuple].
+Definition E_of_scalar_LV (x : scalar_LV) := @varT _ x [tuple].
+Definition E_of_scalar_SV (x : scalar_SV) := @varT _ x [tuple].
+Coercion E_of_scalar : scalar >-> E.
+Coercion E_of_scalar_LV : scalar_LV >-> E.
+Coercion E_of_scalar_SV : scalar_SV >-> E.
 Notation "'`' x" := (@varT _ x [tuple]) (at level 30).
 Notation "P ;; Q" := (seq P Q) (at level 150).
 Notation "'IFB' e 'THEN' P 'ELSE' Q" := (P_if e P Q) (at level 135).
@@ -215,9 +227,9 @@ Ltac apply_hoare_rules' loopinv :=
     (match goal with
        | [|-Hoare_proof _ _ _ sync _] => eapply H_Sync
        | [|-Hoare_proof _ (fun _ => forall _, assign _ _ _ _ _ _ _ _ -> _ _) _
-                        (?x @ ?es :::= ?e) _] =>
+                        (?x @ ?es ::= ?e) _] =>
          eapply H_Assign
-       | [|-Hoare_proof _ _ _ (?x @ ?es :::= ?e) _] =>
+       | [|-Hoare_proof _ _ _ (?x @ ?es ::= ?e) _] =>
          (try eapply H_Assign; try (eapply H_Conseq_pre; [eapply H_Assign|]))
        | [|-Hoare_proof _ _ _ (?P;; sync) _] =>
          eapply H_Seq; try eapply H_Sync
@@ -258,7 +270,7 @@ Ltac apply_big_nat_widen m n1 n2 H :=
   end.
 
 Module Kogge_Stone.
-  Definition s : SV 0%nat := shared _ 0%nat.
+  Definition s : scalar_SV := shared _ 0%nat.
 
   (* The array length is N *)
   Lemma implements_prefixsum :
@@ -267,26 +279,26 @@ Module Kogge_Stone.
       n = (sval N)%nat ->
       Hoare_proof N
                   (fun s : state _ =>
-                     forall e i,
-                       s[[varT a [tuple c e]]](i) = a0 [tuple e])
+                     forall (e : int) i,
+                       s[[varT a [tuple e:E]]](i) = a0 [tuple e])
                   (fun _ => 1%:Z)
-                  (s ::= c 1%nat
+                  (s :::= 1%nat
                      ;;
-                     (WHILE (`s <E c n) DO
-                            (IFB (`s <=E tid) THEN
-                                 (a @ [tuple tid] :::= varT a[tuple tid] +E varT a[tuple tid -E `s])
+                     (WHILE (s < n) DO
+                            (IFB (s <= tid) THEN
+                                 (a @ [tuple tid] ::= varT a[tuple tid] + varT a[tuple tid - s])
                                  ELSE skip
                                  ;;
-                                 s ::= (`s *E c 2%nat)
+                                 s :::= s * 2%nat
                                  ;;
                                  sync
                             )
                      )
-                  )
+                  )%E
                   (fun s : state _ =>
                      forall (i : T N) (j : nat),
                        j < sval N ->
-                       s[[varT a [tuple c j%nat]]](i) =
+                       s[[varT a [tuple j:E] ]](i) =
                        (\sum_(0 <= m < j+1) a0 [tuple (Posz m)])).
   Proof.
     move=> n N a a0 N_2exp n_2N.
@@ -297,11 +309,11 @@ Module Kogge_Stone.
            (2 ^ l <= n)%nat /\
            (forall j,
              ((2 ^ l - 1 < j)%nat -> (j < n) ->
-              (forall i, st[[varT a [tuple c j]]](i) = (\sum_(j-2^l+1 <= k < j+1) (a0 [tuple k%:Z]))))) /\
+              (forall i, st[[varT a [tuple j:E]]](i) = (\sum_(j-2^l+1 <= k < j+1) (a0 [tuple k%:Z]))))) /\
            (forall j,
               ((j < 2 ^ l)%nat ->
-               (forall i, st[[varT a [tuple c j]]](i) = (\sum_(0 <= k < j+1) (a0 [tuple k%:Z])))))
-      ) as loopinv.
+               (forall i, st[[varT a [tuple j:E]]](i) = (\sum_(0 <= k < j+1) (a0 [tuple k%:Z])))))
+      )%Z as loopinv.
     apply_hoare_rules_with loopinv.
     { subst.
       move=> s0 pre_cond new_s.
@@ -360,7 +372,7 @@ Module Kogge_Stone.
           move: (Ordinal (svalP N)) => th0.
           move: (H th0).
           rewrite -(while_cond th0).
-          rewrite intOrdered.ltz_def-(old_s th0)eq_refl/negb// . }
+          rewrite intOrdered.ltz_def-(old_s th0)/const eq_refl /negb// . }
         { move => n_gt_2expl.
           exists (l.+1)%nat.
           repeat split => // .
