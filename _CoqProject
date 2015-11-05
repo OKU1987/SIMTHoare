@@ -2,4 +2,5 @@
 Vector_of_tuple.v
 SIMT_util.v
 SIMT.v
+SIMT_verification_util.v
 SIMT_ps.v
