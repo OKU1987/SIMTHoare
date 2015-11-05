@@ -6,13 +6,12 @@ Section SIMT_verification_util.
   Variable num_threads : {n : nat | 0 < n}.
   Definition N := sval num_threads.
 
-  Definition assertion := SIMT.assertion num_threads.
 
   Inductive program_with_inv : Type :=
   | Prg : program -> program_with_inv
   | seq' : program_with_inv -> program_with_inv -> program_with_inv
   | P_if' : E -> program_with_inv -> program_with_inv -> program_with_inv
-  | P_while' : E -> program_with_inv -> assertion -> program_with_inv.
+  | P_while' : E -> program_with_inv -> assertion num_threads -> program_with_inv.
   Notation "'WHILE' e 'DO' P 'with' phi" := (P_while' e P phi) (at level 140).
   Notation "s '[[' e ']](' i ')'" := (E_under_state num_threads s e i) (at level 50).
   Coercion Prg : program >-> program_with_inv.
@@ -26,20 +25,10 @@ Section SIMT_verification_util.
     end.
 
 
-  Definition mask := SIMT.mask num_threads.
-  Definition state := SIMT.state num_threads.
-
-  Definition eval := SIMT.eval num_threads.
-
-  Definition T := SIMT.T num_threads.
-
-  Definition Hoare_proof := SIMT.Hoare_proof num_threads.
-  Definition none := SIMT.none num_threads.
-
-  Inductive Hoare_proof' : assertion -> (T -> int) -> program_with_inv -> assertion -> Prop :=
-  | hoare_pf : forall phi m (P : program) psi, Hoare_proof phi m P psi ->
+  Inductive Hoare_proof' : assertion num_threads -> (T num_threads -> int) -> program_with_inv -> assertion num_threads -> Prop :=
+  | hoare_pf : forall phi m (P : program) psi, Hoare_proof _ phi m P psi ->
                                                Hoare_proof' phi m P psi
-  | H_Conseq' : forall (phi phi' psi psi' : assertion) m P,
+  | H_Conseq' : forall (phi phi' psi psi' : assertion _) m P,
                   Hoare_proof' phi m P psi ->
                   (forall s, phi' s -> phi s) ->
                   (forall s, psi s -> psi' s) ->
@@ -54,12 +43,12 @@ Section SIMT_verification_util.
               Hoare_proof' phi m (P_if' e P Q) chi
   | H_While' : forall phi m e P,
                  (forall z, Hoare_proof' (fun s => phi s /\ (forall i, s[[e]](i) = z i)) (fun i => e_and [tuple m i; z i]) P phi) ->
-                 Hoare_proof' phi m (WHILE e DO P with phi) (fun s => phi s /\ none (fun i : T => e_and [tuple m i; s[[e]](i)])).
+                 Hoare_proof' phi m (WHILE e DO P with phi) (fun s => phi s /\ none _ (fun i : T _ => e_and [tuple m i; s[[e]](i)])).
 
 
   Lemma hoare_proof_remove_inv : forall phi m P psi,
                                    Hoare_proof' phi m P psi ->
-                                   Hoare_proof phi m (remove_inv P) psi.
+                                   Hoare_proof _ phi m (remove_inv P) psi.
   Proof.
     move=> phi m P psi H.
     induction H => //= .
