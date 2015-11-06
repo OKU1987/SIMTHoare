@@ -158,6 +158,20 @@ Ltac asgn_to_scalar_never_fail H i :=
            fail 1 "This tactic cannot be applied terms of type: "msg
   end;
   eliminate_existsP.
+Ltac certify_asgn_performed_by H i H' :=
+  match type of H with
+    | context[FiniteQuant.quant0b] =>
+      let H0 := fresh H"'" in
+      try (destruct H as [ [H H0] | H];
+           eliminate_forallP' i;
+           try (move: (introT eqP H0) => {H0} H0; rename_for_newvar);
+           try (move: (H i);
+                try (rewrite in_set/bool_of_int (H' i) //);
+                try (rewrite -(H' i) //);
+                move => {H} H))
+    | _ => fail
+  end.
+
 Ltac no_active_threads_no_asgn_to H :=
   match goal with
     | [ H' : none _ _ |- _] =>
