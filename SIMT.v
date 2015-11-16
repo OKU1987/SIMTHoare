@@ -103,6 +103,11 @@ Section SIMT_Definition.
     rewrite /cancel/int_of_bool/bool_of_int.
     elim; done.
   Qed.
+  Lemma int_of_bool_true : forall b, (int_of_bool b) != 0 <-> b.
+  Proof.
+    case => // .
+  Qed.
+
   Definition e_neg : Op 1 :=
     fun z => match z with
                | Tuple [x] _ => int_of_bool (~~ (bool_of_int x))
