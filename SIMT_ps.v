@@ -397,8 +397,7 @@ Module Kogge_Stone.
             move: (svalP N) => /= => N_gt_0.
             simplify_mask.
             certify_asgn_performed_by asgn_to_new_a (Ordinal j_lt_n) H.
-            { move: (old_a j (ltn_trans H0 j_gt_subn_2_expl1) j_lt_n i) => {old_a} old_a.
-              move: (old_s (Ordinal j_lt_n)) (if_cond (Ordinal j_lt_n)).
+            { move: (old_s (Ordinal j_lt_n)) (if_cond (Ordinal j_lt_n)).
               rewrite /= => old_s_eq_2expl.
               rewrite old_s_eq_2expl ?exprzn/intOrdered.lez/= .
               rewrite -(leq_add2r 1) ?subn1 ?addn1 in H0.
@@ -472,7 +471,7 @@ Module Kogge_Stone.
               { move: {asgn_to_new_a} (old_a' _ j_cmp_2expl i).
                 rewrite /const/= asgn_to_new_a'// . }}
             { certify_asgn_performed_by asgn_to_new_a (Ordinal j_lt_N) H.
-              { move: (old_s (Ordinal j_lt_N)) (if_cond (Ordinal j_lt_N)) (while_cond (Ordinal j_lt_N)).
+              { move: (old_s (Ordinal j_lt_N)) (if_cond (Ordinal j_lt_N)).
                 rewrite /= => {old_s} old_s.
                 rewrite old_s/const ?exprzn/= j_cmp_2expl => z0_true.
                 rewrite ?in_set -z0_true/= negbF// in asgn_to_new_a.
