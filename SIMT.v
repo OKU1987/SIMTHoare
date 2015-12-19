@@ -107,6 +107,10 @@ Section SIMT_Definition.
   Proof.
     case => // .
   Qed.
+  Lemma int_of_bool_false : forall b, (int_of_bool b) == 0 <-> ~~ b.
+  Proof.
+    case => // .
+  Qed.
 
   Definition e_neg : Op 1 :=
     fun z => match z with
