@@ -1,6 +1,6 @@
 Require Import SIMT.
-Require Import ssreflect ssrfun ssrbool ssrnat.
-Require Import tuple ssrint.
+Require Import ssreflect ssrfun ssrbool ssrnat fintype.
+Require Import tuple finfun ssrint.
 
 Section SIMT_verification_util.
   Variable num_threads : {n : nat | 0 < n}.
@@ -36,10 +36,10 @@ Section SIMT_verification_util.
     | P_while' e p _ => P_while e (remove_inv p)
     end.
 
-  Inductive Hoare_proof' : assertion num_threads -> (T num_threads -> int) -> program_with_inv -> assertion num_threads -> Prop :=
+  Inductive Hoare_proof' : assertion num_threads -> {ffun (T num_threads) -> int} -> program_with_inv -> assertion num_threads -> Prop :=
   | H_Skip' : forall phi m, Hoare_proof' phi m skip' phi
-  | H_Sync' : forall (phi : assertion num_threads) m, Hoare_proof' (fun s => (all num_threads m \/ none num_threads m) -> phi s) m sync' phi
-  | H_Assign' : forall n x es e m (phi : assertion num_threads),
+  | H_Sync' : forall (phi : assertion num_threads) (m : {ffun T _ -> int}), Hoare_proof' (fun s => (all num_threads m \/ none num_threads m) -> phi s) m sync' phi
+  | H_Assign' : forall n x es e (m : {ffun T _ -> int}) (phi : assertion num_threads),
       Hoare_proof' (fun s : state num_threads =>
                       forall x', assign num_threads s n x' m x es e ->
                                  phi (update_state num_threads s n x x'))
@@ -53,13 +53,13 @@ Section SIMT_verification_util.
                Hoare_proof' phi m P psi ->
                Hoare_proof' psi m Q chi ->
                Hoare_proof' phi m (seq' P Q) chi
-  | H_If' : forall phi psi chi e m P Q,
-              (forall z, Hoare_proof' (fun s => phi s /\ (forall i, s[[e]](i) = z i)) (fun i => e_and [tuple m i;  z i]) P (psi z)) ->
-              (forall z, Hoare_proof' (psi z) (fun i => e_and [tuple m i; e_neg [tuple z i]]) Q chi) ->
+  | H_If' : forall phi psi chi e (m : {ffun T _ -> int}) P Q,
+              (forall z : {ffun T _ -> int}, Hoare_proof' (fun s => (forall i, s[[e]](i) = z i) /\ phi s) [ffun i => e_and [tuple m i;  z i]] P (psi z)) ->
+              (forall z : {ffun T _ -> int}, Hoare_proof' (psi z) [ffun i => e_and [tuple m i; e_neg [tuple z i]]] Q chi) ->
               Hoare_proof' phi m (P_if' e P Q) chi
-  | H_While' : forall phi m e P,
-                 (forall z, Hoare_proof' (fun s => phi s /\ (forall i, s[[e]](i) = z i)) (fun i => e_and [tuple m i; z i]) P phi) ->
-                 Hoare_proof' phi m (WHILE e DO P with phi) (fun s => phi s /\ none _ (fun i : T _ => e_and [tuple m i; s[[e]](i)])).
+  | H_While' : forall phi (m : {ffun T _ -> int}) e P,
+                 (forall z : {ffun T _ -> int}, Hoare_proof' (fun s => (forall i, s[[e]](i) = z i) /\ phi s) [ffun i => e_and [tuple m i; z i]] P phi) ->
+                 Hoare_proof' phi m (WHILE e DO P with phi) (fun s => phi s /\ none _ [ffun i : T _ => e_and [tuple m i; s[[e]](i)]]).
 
 
 
