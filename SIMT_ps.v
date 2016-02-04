@@ -2,9 +2,8 @@ Require Import SIMT_util.
 Require Import Vector_of_tuple.
 Require Import SIMT.
 Require Import SIMT_verification_util.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat fintype.
-Require Import tuple finfun div bigop finset ssralg ssrint intdiv.
-Require Import FunctionalExtensionality.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat fintype.
+From mathcomp Require Import tuple finfun div bigop finset ssralg ssrint intdiv.
 Implicit Arguments var [n].
 Implicit Arguments Vector_of_tuple [T n].
 Implicit Arguments tuple_of_Vector [T n].
@@ -291,8 +290,8 @@ Ltac apply_hoare_rules_with_a_loopinv loopinv := repeat (apply_hoare_rules_with_
 
 Unset Ltac Debug.
 
-Require Import seq.
-Require Import bigop ssralg.
+From mathcomp Require Import seq.
+From mathcomp Require Import bigop ssralg.
 Open Scope ring_scope.
 
 Ltac apply_big_nat_widen m n1 n2 H :=

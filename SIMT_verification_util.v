@@ -1,6 +1,6 @@
 Require Import SIMT.
-Require Import ssreflect ssrfun ssrbool ssrnat fintype.
-Require Import tuple finfun ssrint.
+From mathcomp Require Import ssreflect ssrfun ssrbool ssrnat fintype.
+From mathcomp Require Import tuple finfun ssrint.
 
 Section SIMT_verification_util.
   Variable num_threads : {n : nat | 0 < n}.
@@ -87,7 +87,6 @@ Section SIMT_verification_util.
   Proof.
     move=> phi m P psi H.
     induction H => //= ; try (econstructor; fail).
-    { eapply H_Assign; eassumption. }
     { eapply H_Conseq; eassumption. }
     { eapply H_Seq; eassumption. }
     { eapply H_If; eassumption. }

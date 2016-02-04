@@ -1,6 +1,6 @@
 Require Import SIMT_util.
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
-Require Import tuple finfun finset ssrint intdiv.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
+From mathcomp Require Import tuple finfun finset ssrint intdiv.
 Require Import FunctionalExtensionality.
 Open Scope list_scope.
 Import List.ListNotations.
@@ -291,7 +291,7 @@ Section SIMT_Definition.
                              if i \in mu then
                                [eta s.1 n x i with s[[[es]]](i) |-> s[[e]](i)]
                              else
-                               s.1 n x i
+                               SimplFun (s.1 n x i)
                          else s'.1 n y =2 s.1 n y
                      else (forall y : LV n', s'.1 n' y =2 s.1 n' y)) ->
                   eval (asgn x es e) mu s s'

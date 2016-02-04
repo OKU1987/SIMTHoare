@@ -1,8 +1,8 @@
 (* This file is originated from
   https://gist.github.com/qnighy/bad737efac4b1bc9b9fc *)
 
-Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
-Require Import tuple finfun finset.
+From mathcomp Require Import ssreflect ssrfun ssrbool eqtype ssrnat seq fintype.
+From mathcomp Require Import tuple finfun finset.
 Require Import Coq.Vectors.Vector.
 
 Lemma beheadE n T (x : T) (t : n.-tuple T) :
@@ -14,7 +14,7 @@ Qed.
 Section tuple_Vector_correspondence.
   Variable T : Type.
 
-  Fixpoint tuple_of_Vector(n:nat) :=
+  Fixpoint tuple_of_Vector (n:nat) : Vector.t T n -> tuple_of n T :=
     match n return Vector.t T n -> tuple_of n T with
     | 0 => fun _ => [tuple]
     | n'.+1 => fun v =>
