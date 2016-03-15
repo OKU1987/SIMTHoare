@@ -673,6 +673,73 @@ Ltac apply_hoare_rules_with_loopinv_original' :=
 
 Ltac apply_hoare_rules_with_loopinv_original := repeat apply_hoare_rules_with_loopinv_original'.
 
+Ltac apply_hoare_rules_with_loopinv2' :=
+    (match goal with
+     | [|- Hoare_proof' _ _ _ (skip' _) ?phi] =>
+       idtac "skip";
+         let s' := fresh "s" in
+         let H' := fresh "H" in
+       try (eapply H_Skip'; fail);
+           try (eapply H_Conseq_pre' with (phi':=phi);
+                 [eapply H_Skip' |])
+     | [|- Hoare_proof' _ _ ?m (sync' _) ?phi] =>
+       idtac "sync";
+         let s' := fresh "s" in
+         let H' := fresh "H" in
+       try (eapply H_Sync'; fail);
+         try (eapply H_Conseq_pre' with
+              (phi':=(fun s => SIMT.all _ m \/ none _ m -> phi s));
+               [eapply H_Sync'|])
+     | [|- Hoare_proof' _ _ ?m (asgn' _ ?n ?x ?es ?e) ?phi] =>
+       idtac "assign: "x"["es"] := "e;
+         let s' := fresh "s" in
+         let H' := fresh "H" in
+         try (eapply H_Assign'; fail);
+           try (eapply H_Conseq_pre'; [eapply H_Assign' |])
+     | [|- Hoare_proof' _ _ _ (seq' _ _ _) _] =>
+       idtac "seq";
+         eapply H_Seq'; last first
+     | [|- Hoare_proof' _ _ _ (P_if' _ _ _ _) _] =>
+       idtac "if";
+         let s' := fresh "s" in
+         let H' := fresh "H" in
+         let z' := fresh "z" in
+         eapply H_Conseq_pre';
+           [eapply H_If'; move=> z'|]
+     | [|-Hoare_proof' _ _ ?m (P_while' _ ?e _ ?loopinv) _ ] =>
+       idtac "while"loopinv;
+       let z' := fresh "z" in
+       let s' := fresh "s" in
+       let H' := fresh "H" in
+       eapply H_Conseq'
+       with
+       (phi:=loopinv)
+       (psi:=(fun s : state _ =>
+                     loopinv s /\
+                     none _ [ffun i => e_and [tuple m i; s[[e]](i)]]));
+         [eapply H_While'; move => z'| |]
+     | _ => fail
+     end).
+
+Ltac apply_hoare_rules_with_loopinv2 :=
+  repeat apply_hoare_rules_with_loopinv2';
+  repeat (let s' := fresh "s" in
+       let H' := fresh "H" in
+       let z' := fresh "z" in
+       move=> s';
+         repeat (let eq_e := fresh "eq_e" in case=> eq_e);
+         move=> H';
+         repeat (match goal with
+                 | [ H : forall i, _ = ?z' i |- _] =>
+                   apply ffunP in H;
+                     try (rewrite -H; move=> {H})
+                 | _ => fail
+                 end);
+         repeat (match goal with
+                 | [ z : {ffun T N -> int} |- _] => try move=> {z}
+                 | _ => fail
+                 end);
+         try eapply H').
 
 Module Blelloch.
   Variable N : { n : nat | (0 < n)%nat }.
@@ -783,15 +850,23 @@ Module Blelloch.
                          (\sum_(0 <= m < j) a0 [tuple  m%:Z]))).
   Proof.
     move=> n a a0 e11 e12 e21 e22 N_2exp n_N Heq_e11 Heq_e12 Heq_e21 Heq_e22.
-    apply_hoare_rules_with_loopinv.
+    apply_hoare_rules_with_loopinv2.
     { cbv beta.
+      move=> {z}.
+      move: s0 H s1 H0 s2 H1 s3 H2 s4 H3.
       move=> {Heq_e11} {Heq_e12} {e11} {e12}.
       case=> l_map s_map loopinv.
       case=> // => new_t asgn_to_new_t.
       case=> // => new_a_e21 asgn_to_new_a_e21.
       case=> // => new_a_e22 asgn_to_new_a_e22.
       case=> // => new_s asgn_to_new_s sync_H i.
-      destruct loopinv as [ if_cond [while_cond loopinv_pre] ].
+      rename loopinv into loopinv_pre.
+      remember (E_under_state _ (l_map, s_map) (funcT e_lt [tuple tid; funcT e_div [tuple n%:Z:E; s:E]])) as if_cond.
+      remember (E_under_state _ (l_map, s_map) (funcT e_lt [tuple 1%:Z:E; s:E])) as while_cond.
+      rename while_cond into z.
+      rename if_cond into z0.
+      rename Heqwhile_cond into while_cond.
+      rename Heqif_cond into if_cond.
       move: (loopinv_pre i) => {loopinv_pre}.
       case => old_temp.
       case => l.
@@ -858,9 +933,10 @@ Module Blelloch.
             (* while_cond is satisfied in the loop *)
             move: (Ordinal (svalP N)) => th0.
             move: (sync_H th0).
+            apply ffunP in while_cond.
             move: (while_cond th0).
             rewrite ?ffunE/= => {while_cond} while_cond.
-            rewrite -while_cond.
+            rewrite while_cond.
             rewrite /e_and/= int_of_boolK.
             move/int_of_bool_true => {while_cond} while_cond.
             (* end *)
@@ -879,9 +955,10 @@ Module Blelloch.
             (* while_cond is satisfied in the loop *)
             move: (Ordinal (svalP N)) => th0.
             move: (sync_H th0).
+            apply ffunP in while_cond.
             move: (while_cond th0).
             rewrite ?ffunE/= => while_cond'.
-            rewrite -while_cond'.
+            rewrite while_cond'.
             rewrite /e_and/= int_of_boolK.
             move/int_of_bool_true => s_gt_1.
             rewrite ?ffunE in old_s.
@@ -889,11 +966,6 @@ Module Blelloch.
             move: {+}s_gt_1 => l_ltn_logN.
             rewrite n_N N_2exp in l_ltn_logN.
             (* end *)
-            case:eqnP => // => p.
-            case:eqnP => // => p'.
-            rewrite /eq_rec_r/eq_rec/eq_rect.
-            rewrite (eq_irrelevance (Logic.eq_sym _) erefl).
-            rewrite eq_refl/= .
             rewrite n_N N_2exp leq_exp2l// in two_expl_leq_n.
             rewrite /const ?ffunE/= in l_ltn_logN.
             rewrite ltn_divRL ?dvdn_exp2l// mul1n in l_ltn_logN.
@@ -990,13 +1062,14 @@ Module Blelloch.
                   move: (asgn_to_new_a_e22 e22_inv).
                   rewrite /mask_of/bool_of_int ?in_set//= .
                   move=> {asgn_to_new_a_e22} {H0} asgn_to_new_a_e22.
+                  apply ffunP in if_cond.
                   move: (if_cond e22_inv).
                   move: (while_cond e22_inv).
                   rewrite /e22_inv/= .
                   rewrite ?ffunE/= in s_gt_1.
                   rewrite ?ffunE/= /const old_s/= divz_nat/= s_gt_1.
                   move=> {while_cond} {if_cond} while_cond if_cond.
-                  rewrite ?ffunE/= -while_cond-if_cond in asgn_to_new_a_e22.
+                  rewrite ?ffunE/=  while_cond if_cond in asgn_to_new_a_e22.
                   suff: ((j + 1) %/ (n %/ 2 ^ l) - 1 < n %/ (n %/ 2 ^ l))%nat.
                   move => if_cond_true.
                   rewrite if_cond_true in asgn_to_new_a_e22.
@@ -1018,6 +1091,7 @@ Module Blelloch.
                   rewrite dvdn_leq// addn1 ltn0Sn// . }
                 { eliminate_existsP.
                   rewrite ltn_exp2l// in l_ltn_logN.
+                  simplify_update_state.
                   rewrite ?ffunE/= asgn_to_new_a_e0.
                   apply (elimT eqP) in asgn_to_new_a_e22'.
                   rewrite ?ffunE/s_es/= in asgn_to_new_a_e22' => {asgn_to_new_a_e0}.
@@ -1205,17 +1279,19 @@ Module Blelloch.
                   rewrite ?int_of_boolK asgn_to_new_a_e22 int_of_bool_true// . }}
               { (* SSCase: P_prev is NOT satisfied *)
                 rewrite ltn_exp2l// in l_ltn_logN.
+                simplify_update_state.
                 case: asgn_to_new_a_e22 => asgn_to_new_a_e22; last first.
                 { eliminate_existsP.
-                  rewrite ffunE asgn_to_new_a_e0=> {asgn_to_new_s'} {asgn_to_new_a_e0}.
+                  rewrite asgn_to_new_a_e0=> {asgn_to_new_s'} {asgn_to_new_a_e0}.
                   apply (elimT eqP) in asgn_to_new_a_e22'.
                   rewrite /s_es/= in asgn_to_new_a_e22'.
                   inversion asgn_to_new_a_e22'.
                   move: H0=> {asgn_to_new_a_e22'}.
                   rewrite /eq_rec_r/eq_rec/eq_rect/= .
-                  simplify_update_state.
                   assert (a == a = true) by rewrite eq_refl// .
-                  (* rewrite H asgn_to_new_a_e22' => {H}. *)
+                  simplify_update_state.
+                  case (@eqnP 1%nat 1%nat)=> // => ?.
+                  rewrite (eq_irrelevance (Logic.eq_sym _) erefl).
                   rewrite H => {H}.
                   move: {+}l_ltn_logN.
                   rewrite -{1}[l%nat]addn0 -ltn_subRL=> l_ltn_logN'.
@@ -1233,7 +1309,7 @@ Module Blelloch.
                   rewrite addn_gt0 ?dvdn_gt0 ?expn_gt0 ?orbT// . }
                 destruct asgn_to_new_a_e22 as [index_neq asgn_to_new_a_e22].
                 move=> {index_neq}.
-                rewrite ffunE asgn_to_new_a_e22/= => {asgn_to_new_a_e22}.
+                rewrite /const asgn_to_new_a_e22/= => {asgn_to_new_a_e22}.
                 move=> {asgn_to_new_s'} {asgn_to_new_s0}.
                 simplify_update_state.
                 move: (asgn_to_new_a_e21 [tuple j%:Z]) => {asgn_to_new_a_e21} asgn_to_new_a_e21.
@@ -1247,13 +1323,14 @@ Module Blelloch.
                   move: (asgn_to_new_a_e21 e21_inv').
                   rewrite /mask_of/bool_of_int ?in_set//= .
                   move=> {e21K} {asgn_to_new_a_e21} {H0} asgn_to_new_a_e21 e21K.
+                  apply ffunP in if_cond.
                   move: (if_cond e21_inv').
                   move: (while_cond e21_inv').
                   rewrite /e21_inv'/e21_inv/= .
                   rewrite ?ffunE/= in s_gt_1.
                   rewrite ?ffunE/= old_s/= divz_nat/= s_gt_1.
                   move=> {while_cond} {if_cond} while_cond if_cond.
-                  rewrite ?ffunE/= -while_cond-if_cond in asgn_to_new_a_e21.
+                  rewrite ?ffunE/= while_cond if_cond in asgn_to_new_a_e21.
                   move: {+}l_ltn_logN.
                   rewrite -(@dvdn_Pexp2l 2)// -N_2exp -n_N=> n_dvdn.
                   suff: (((j + 1) %/ (n %/ 2 ^ l.+1) - 1)%/ 2 < n %/ (n %/ 2 ^ l))%nat.
@@ -1380,7 +1457,8 @@ Module Blelloch.
                 rewrite -{1}[(n %/ 2 ^ l)%nat]muln1 dvdn_pmul2l// dvd1n// . }
               destruct asgn_to_new_a_e22 as [index_eq asgn_to_new_a_e22].
               move=> {index_eq}.
-              rewrite ffunE asgn_to_new_a_e22=> {asgn_to_new_a_e22}.
+              simplify_update_state.
+              rewrite /= asgn_to_new_a_e22=> {asgn_to_new_a_e22}.
               simplify_update_state.
               move: (asgn_to_new_a_e21 [tuple j%:Z])=> {asgn_to_new_a_e21}.
               case=> asgn_to_new_a_e21; last first.
@@ -1428,9 +1506,14 @@ Module Blelloch.
               apply (@dvdn_trans (2^l')%nat) => // . }}}}}
     { cbv beta.
       move=> {Heq_e11} {Heq_e12} {e11} {e12}.
-      case=> l_map s_map.
-      case=> loopinv loopinv_none sync_H.
-      case=> // => new_a_0 asgn_to_new_a_0 i j.
+      case s0=> l_map s_map.
+      rename eq_e into loopinv.
+      rename H into loopinv_none.
+      rename s1 into sync_H.
+      rename eq_e0 into new_a_0.
+      rename H0 into asgn_to_new_a_0.
+      rename s2 into i.
+      rename H1 into j.
       simplify_update_state.
       rewrite /const/= .
       split.
@@ -1477,10 +1560,17 @@ Module Blelloch.
           inversion asgn_to_new_a_0'.
           rewrite -H0// in j_gt_0. }}}
     { move=> {Heq_e21} {Heq_e22} {e21} {e22}.
-      case=> l_map s_map pre_cond.
-      case => // => new_a asgn_to_new_a.
-      case => // => new_s asgn_to_new_s sync_H i.
-      destruct pre_cond as [if_cond [while_cond loopinv_pre]].
+      move: H H0 H1.
+      case: s0=> l_map s_map loopinv_pre.
+      case: s1 => // => new_a asgn_to_new_a.
+      case: s2 => // => new_s asgn_to_new_s sync_H i.
+      remember (E_under_state _ (l_map, s_map) (funcT e_lt [tuple tid; funcT e_div [tuple n:E; funcT e_mult [tuple 2%:Z:E; s:E]]])) as if_cond.
+      remember (E_under_state _ (l_map, s_map) (funcT e_lt [tuple s:E; n:E])) as while_cond.
+      move=> {z} (*{z0}*).
+      rename while_cond into z.
+      rename if_cond into z0.
+      rename Heqwhile_cond into while_cond.
+      rename Heqif_cond into if_cond.
       move: (loopinv_pre i) => {loopinv_pre}.
       case => l.
       case => old_s.
@@ -1526,7 +1616,8 @@ Module Blelloch.
           (* while_cond is satisfied in the loop *)
           move: (Ordinal (svalP N)) => th0.
           move: (sync_H th0).
-          rewrite ?ffunE/= -(while_cond th0)/= ?ffunE/= .
+          apply ffunP in while_cond.
+          rewrite ?ffunE/= (while_cond th0)/= ?ffunE/= .
           rewrite /e_and/= int_of_boolK.
           move/int_of_bool_true => {while_cond} while_cond.
           (* end *)
@@ -1538,7 +1629,8 @@ Module Blelloch.
           (* while_cond is satisfied in the loop *)
           move: (Ordinal (svalP N)) => th0.
           move: (sync_H th0).
-          rewrite ?ffunE/= -(while_cond th0)/= ?ffunE/= .
+          apply ffunP in while_cond.
+          rewrite ?ffunE/= (while_cond th0)/= ?ffunE/= .
           rewrite /e_and/= int_of_boolK.
           move/int_of_bool_true => {while_cond} while_cond.
           (* end *)
@@ -1572,6 +1664,7 @@ Module Blelloch.
             { rewrite ?ffunE/= in asgn_to_new_a.
               rewrite ?muln_gt0 ?expn_gt0 ?addn_gt0 ?orbT/= in asgn_to_new_a.
               (* required to prove that ~Q(f^{-1}(j)) *)
+              apply ffunP in if_cond.
               move: (if_cond (Ordinal (ltn_trans (H index_mod) j_lt_N))).
               rewrite /= old_s ?ffunE/=/const divz_nat -expnS/= .
               rewrite -(ltn_add2r 1).
@@ -1579,7 +1672,7 @@ Module Blelloch.
               rewrite [(n %/ 2 ^l.+1 + 1)%nat]addn1 ltnS.
               rewrite leq_div2r.
               move=> z0_true.
-              rewrite -z0_true ?int_of_bool_true/= in asgn_to_new_a.
+              rewrite z0_true ?int_of_bool_true/= in asgn_to_new_a.
               rewrite negbF// in asgn_to_new_a.
               apply (introT eqP), val_inj => /= .
               rewrite -{4}[2%nat]muln1 -mulnDr.
@@ -1594,10 +1687,11 @@ Module Blelloch.
               (* get previous a[2 ^ l * (2 * i1 + 1) -1] *)
               move: (old_a ((2 ^ l * (2 * i1 + 1)) - 1)%nat).
               rewrite ?ffunE/= in asgn_to_new_a0.
+              apply ffunP in if_cond.
               move: (if_cond i1).
               rewrite /= ?ffunE/= old_s/const/= divz_nat => z0_eq.
               move:{+}asgn_to_new_a => asgn_to_new_a2.
-              rewrite ?in_set-z0_eq int_of_boolK in asgn_to_new_a.
+              rewrite ?in_set z0_eq int_of_boolK in asgn_to_new_a.
               rename asgn_to_new_a into i1_lt_n_div_2s.
               rewrite leq_divRL -?expnS ?expn_gt0 ?addn_gt0 ?orTb // in i1_lt_n_div_2s.
               rewrite expnS in i1_lt_n_div_2s.
@@ -1621,7 +1715,7 @@ Module Blelloch.
               rename asgn_to_new_a2 into asgn_to_new_a.
               move: (if_cond i1).
               rewrite /= ?ffunE/= old_s/const/= divz_nat => z0_eq'.
-              rewrite ?in_set-z0_eq int_of_boolK in asgn_to_new_a.
+              rewrite ?in_set z0_eq int_of_boolK in asgn_to_new_a.
               rename asgn_to_new_a into i1_lt_n_div_2s.
               rewrite leq_divRL -?expnS ?expn_gt0 ?addn_gt0 ?orTb // in i1_lt_n_div_2s.
               rewrite expnS in i1_lt_n_div_2s.
@@ -1720,10 +1814,10 @@ Module Blelloch.
                 rewrite (ltn_trans l'_lt_l (ltnSn _))// . }}}}}}
     { move=> {Heq_e11} {Heq_e12} {Heq_e21} {Heq_e22} {e11} {e12} {e21} {e22}.
       cbv beta.
-      case => l_map s_map loopinv.
-      case => // => new_temp asgn_to_new_temp.
-      case => // => new_a_n_1 asgn_to_new_a_n_1 i.
-      destruct loopinv as [loopinv postcond_while].
+      move: eq_e H H0 H1.
+      case: s0 => l_map s_map loopinv postcond_while.
+      case: s1 => // => new_temp asgn_to_new_temp.
+      case: s2 => // => new_a_n_1 asgn_to_new_a_n_1 i.
       rewrite /assign/sassign in asgn_to_new_a_n_1.
       rewrite /s_es n_N/= (*(svalP N)/=*) in asgn_to_new_a_n_1.
       rewrite /const in asgn_to_new_a_n_1.
@@ -1818,8 +1912,9 @@ Module Blelloch.
                 rewrite addn1 in index_mod.
                 apply (dvdn_leq (ltn0Sn j)) in index_mod.
                 rewrite -addn1 leqNgt j_cmp_n_1// in index_mod. }}}}}}
-    { case=> l_map s_map a_init.
-      case => // => s' s_1 i.
+    { move: H H0.
+      case: s0=> l_map s_map a_init.
+      case: s1 => // => s' s_1 i.
       move: (s_1 [tuple]) => {s_1} {Heq_e11} {Heq_e12} {Heq_e21} {Heq_e22} s_1.
       asgn_to_scalar_never_fail s_1 i; try rewrite ffunE// in s_1.
       simplify_update_state.
