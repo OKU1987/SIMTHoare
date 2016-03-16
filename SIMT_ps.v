@@ -759,6 +759,15 @@ Fixpoint get_verif_precond N m P (postcond : assertion N) : assertion N :=
   | P_while' _ _ loopinv => loopinv
   end.
 
+Definition get_verif_postcond N m P (postcond : assertion N) : assertion N :=
+  match P with
+  | P_while' e _ loopinv =>
+    fun s : state _ =>
+      loopinv s /\
+      none _ [ffun i => e_and [tuple m i; s[[e]](i)]]
+  | _ => postcond
+  end.
+
 Module Blelloch.
   Variable N : { n : nat | (0 < n)%nat }.
   Definition s : scalar_SV := shared _ 0%nat.
