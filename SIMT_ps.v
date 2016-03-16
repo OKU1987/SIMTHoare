@@ -741,6 +741,24 @@ Ltac apply_hoare_rules_with_loopinv2 :=
                  end);
          try eapply H').
 
+Fixpoint get_verif_precond N m P (postcond : assertion N) : assertion N :=
+  match P with
+  | asgn' n x es e =>
+    fun s => forall x', assign _ s n x' m x es e ->
+                        postcond (update_state _ s n x x')
+  | skip' => postcond
+  | sync' => fun s => (SIMT.all N m \/ none _ m) -> postcond s
+  | seq' p p' =>
+    get_verif_precond _ m p (get_verif_precond _ m p' postcond)
+  | P_if' e p p'=>
+    fun s => (get_verif_precond _ [ffun i => e_and [tuple m i; s[[e]](i)]] p
+                                (get_verif_precond _
+                                                   [ffun i => e_and [tuple m i; e_neg [tuple s[[e]](i)]]] p'
+                                                   postcond)
+             ) s
+  | P_while' _ _ loopinv => loopinv
+  end.
+
 Module Blelloch.
   Variable N : { n : nat | (0 < n)%nat }.
   Definition s : scalar_SV := shared _ 0%nat.
