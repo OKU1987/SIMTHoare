@@ -768,6 +768,64 @@ Definition get_verif_postcond N m P (postcond : assertion N) : assertion N :=
   | _ => postcond
   end.
 
+Ltac apply_hoare_rules_with_loopinv3' :=
+  match goal with
+  | [|-Hoare_proof' _ _ ?m ?P ?postcond]=>
+    let postcond' := fresh "postcond" in
+    match P with
+    | asgn' _ _ _ _ _ =>
+      set (postcond' := (postcond));
+        apply H_Conseq' with (phi:=get_verif_precond _ m P postcond')
+                               (psi:=get_verif_postcond _ m P postcond');
+        [| rewrite /postcond'=>{postcond'} | rewrite /postcond'=>{postcond'}]
+    | _ =>
+      apply H_Conseq' with (phi:=get_verif_precond _ m P postcond)
+                             (psi:=get_verif_postcond _ m P postcond)
+    end;
+      repeat (rewrite [get_verif_precond _ _ _ _]/get_verif_precond);
+      repeat (rewrite [get_verif_postcond _ _ _ _]/get_verif_postcond);
+      [match P with
+       | skip' _ => apply H_Skip'
+       | sync' _ => apply H_Sync'
+       | asgn' _ _ _ _ _ =>
+         apply H_Assign'; rewrite /postcond'=> {postcond'}
+       | seq' _ _ ?p =>
+         idtac "Hseq";
+         apply H_Seq' with (psi:=get_verif_precond _ m p postcond);
+           repeat (rewrite [get_verif_precond _ _ _ _]/get_verif_precond; hnf)
+       | P_if' _ _ _ ?p =>
+         idtac "Hif";
+         apply H_If' with
+         (psi:=fun z=>
+                 get_verif_precond _ [ffun i => e_and [tuple m i; e_neg [tuple z i]]] p postcond);
+           repeat (rewrite [get_verif_precond _ _ _ _]/get_verif_precond; hnf);
+           let z := fresh "z" in move=> z
+       | P_while' _ _ _ ?loopinv =>
+         idtac "Hwhile"; apply H_While';
+         let z := fresh "z" in move=> z
+       end | try done | try done]
+  end.
+
+Ltac apply_hoare_rules_with_loopinv3 :=
+  repeat apply_hoare_rules_with_loopinv3';
+  try (let s' := fresh "s" in
+       let H' := fresh "H" in
+       let z' := fresh "z" in
+       move=> s';
+         repeat (let eq_e := fresh "eq_e" in case=> eq_e);
+         move=> H';
+         repeat (match goal with
+                 | [ H : forall i, _ = ?z' i |- _] =>
+                   apply ffunP in H;
+                     try (rewrite -H; move=> {H})
+                 | _ => fail
+                 end);
+         repeat (match goal with
+                 | [ z : {ffun T N -> int} |- _] => try move=> {z}
+                 | _ => fail
+                 end);
+         try eapply H').
+
 Module Blelloch.
   Variable N : { n : nat | (0 < n)%nat }.
   Definition s : scalar_SV := shared _ 0%nat.
